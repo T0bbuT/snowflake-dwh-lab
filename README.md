@@ -1,6 +1,7 @@
 # データウェアハウス(DWH)構築 & データ分析
 本リポジトリにようこそ。
 ここでは、モダンなデータウェアハウスを「MySQL, ETL処理、データモデリング、データ分析」とともに構築していきます。
+
 Baraa Khatib SalkiniのUdemy講座「Building a Modern Data Warehouse - Data Engineering Bootcamp」の内容をもとに進めております。
 
 ## プロジェクト要件
