@@ -77,8 +77,8 @@ begin
     log_message := log_message || '>> Truncating Table: BRONZE.ERP_CUST_AZ12\n';
     truncate table DATA_WAREHOUSE.BRONZE.ERP_CUST_AZ12;
     log_message := log_message || '>> Inserting Data into Table: BRONZE.ERP_CUST_AZ12\n';
-    copy into DATA_WAREHOUSE.BRONZE.CRM_SALES_DETAILS
-    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/sales_details.csv
+    copy into DATA_WAREHOUSE.BRONZE.ERP_CUST_AZ12
+    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_erp/CUST_AZ12.csv
     file_format = DATA_WAREHOUSE.STAGING.CSV_FORMAT;
     end_time := current_timestamp();
     log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
