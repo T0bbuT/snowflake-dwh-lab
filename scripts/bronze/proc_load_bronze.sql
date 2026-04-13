@@ -21,6 +21,7 @@ declare
     start_time          timestamp_ntz;
     end_time            timestamp_ntz;
     log_message         string default '';
+    loaded_rows         integer;
 begin
     log_message :=                '================================================\n';
     log_message := log_message || 'Loading Bronze Layer\n';
@@ -39,7 +40,9 @@ begin
     copy into DATA_WAREHOUSE.BRONZE.CRM_CUST_INFO
     from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/cust_info.csv
     file_format = DATA_WAREHOUSE.STAGING.CSV_FORMAT;
+    loaded_rows := SQLROWCOUNT;  -- 直前のcopy intoで読み込まれた行を取得
     end_time := current_timestamp();
+    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
     log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
     log_message := log_message || '----------\n';
 
@@ -51,7 +54,9 @@ begin
     copy into DATA_WAREHOUSE.BRONZE.CRM_PRD_INFO
     from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/prd_info.csv
     file_format = DATA_WAREHOUSE.STAGING.CSV_FORMAT;
+    loaded_rows := SQLROWCOUNT;  -- 直前のcopy intoで読み込まれた行を取得
     end_time := current_timestamp();
+    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
     log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
     log_message := log_message || '----------\n';
 
@@ -63,7 +68,9 @@ begin
     copy into DATA_WAREHOUSE.BRONZE.CRM_SALES_DETAILS
     from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/sales_details.csv
     file_format = DATA_WAREHOUSE.STAGING.CSV_FORMAT;
+    loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
+    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
     log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
     log_message := log_message || '----------\n';
 
@@ -80,7 +87,9 @@ begin
     copy into DATA_WAREHOUSE.BRONZE.ERP_CUST_AZ12
     from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_erp/CUST_AZ12.csv
     file_format = DATA_WAREHOUSE.STAGING.CSV_FORMAT;
+    loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
+    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
     log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
     log_message := log_message || '----------\n';
 
@@ -92,7 +101,9 @@ begin
     COPY INTO DATA_WAREHOUSE.BRONZE.ERP_LOC_A101
     FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_erp/LOC_A101.csv
     FILE_FORMAT = DATA_WAREHOUSE.STAGING.CSV_FORMAT;
+    loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
+    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
     log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
     log_message := log_message || '----------\n';
 
@@ -104,7 +115,9 @@ begin
     COPY INTO DATA_WAREHOUSE.BRONZE.ERP_PX_CAT_G1V2
     FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_erp/PX_CAT_G1V2.csv
     FILE_FORMAT = DATA_WAREHOUSE.STAGING.CSV_FORMAT;
+    loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
+    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
     log_message := log_message || '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
     log_message := log_message || '----------\n';
 
