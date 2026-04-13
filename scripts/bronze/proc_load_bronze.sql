@@ -17,12 +17,14 @@ returns string
 language sql
 as
 declare
-    batch_start_time    timestamp_ntz default current_timestamp(); 
+    batch_start_time    timestamp_ntz;
+    batch_end_time      timestamp_ntz;
     start_time          timestamp_ntz;
     end_time            timestamp_ntz;
     log_message         string default '';
     loaded_rows         integer;
 begin
+    batch_start_time := current_timestamp();
     log_message :=                '================================================\n';
     log_message := log_message || 'Loading Bronze Layer\n';
     log_message := log_message || '================================================\n';
@@ -120,6 +122,13 @@ begin
     log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
     log_message := log_message || '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
     log_message := log_message || '----------\n';
+
+    -- 処理全体にかかった時間の出力
+    batch_end_time := current_timestamp();
+    log_message := log_message || '\n==========================================\n';
+    log_message := log_message || 'Loading Bronze Layer is Completed\n';
+    log_message := log_message || '     - Tota Load Duration: ' || round(datediff(millisecond, batch_start_time, batch_end_time) / 1000.0, 3) || ' seconds\n';
+    log_message := log_message || '==========================================';
 
     RETURN log_message;
 
