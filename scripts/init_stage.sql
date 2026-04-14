@@ -16,22 +16,19 @@
 ================================================================================================
 */
 
--- todo: コンテキスト設定消して完全修飾名使う
-use role sysadmin;
-use warehouse compute_wh;
-USE DATABASE DATA_WAREHOUSE;
-USE SCHEMA STAGING;
+USE ROLE SYSADMIN;
+USE WAREHOUSE COMPUTE_WH;
 
 -- FIELD_OPTIONALLY_ENCLOSED_BY = '"' で
 -- "value" のようにダブルクォートで囲まれた値を正しくパース（カンマを含む値などに対応）
-CREATE OR REPLACE FILE FORMAT CSV_FORMAT
+CREATE OR REPLACE FILE FORMAT DATA_WAREHOUSE.STAGING.CSV_FORMAT
     TYPE = 'CSV'
     FIELD_OPTIONALLY_ENCLOSED_BY = '"'
     SKIP_HEADER = 1;
 
 -- 内部ステージ作成。ディレクトリテーブルを有効化することで、snowsight上でステージ内の様子を確認できる
-CREATE OR REPLACE STAGE STG_CSV_FILES
-    FILE_FORMAT = CSV_FORMAT
+CREATE OR REPLACE STAGE DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILE_FORMAT = DATA_WAREHOUSE.STAGING.CSV_FORMAT
     DIRECTORY = (ENABLE = TRUE)
     COMMENT = 'Internal stage for loading CSV source files into Bronze layer';
 
