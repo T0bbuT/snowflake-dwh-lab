@@ -1,6 +1,6 @@
 # データウェアハウス(DWH)構築 & データ分析
 本リポジトリにようこそ。
-ここでは、モダンなデータウェアハウスを「MySQL, ETL処理、データモデリング、データ分析」とともに構築していきます。
+ここでは、モダンなデータウェアハウスを「Snowflake, ETL処理、データモデリング、データ分析」とともに構築していきます。
 
 Baraa Khatib Salkini氏のUdemy講座「Building a Modern Data Warehouse - Data Engineering Bootcamp」の内容をもとに進めております。
 URL: https://www.udemy.com/course/building-a-modern-data-warehouse-data-engineering-bootcamp/
@@ -12,7 +12,7 @@ URL: https://www.udemy.com/course/building-a-modern-data-warehouse-data-engineer
 ### データウェアハウスの構築(データエンジニアリング)
 
 #### 目的
-MySQLを使ってモダンなデータウェアハウスを構築し、販売データを統合することで、分析レポートや情報に基づいた意思決定を可能にする。
+Snowflakeを使ってモダンなデータウェアハウスを構築し、販売データを統合することで、分析レポートや情報に基づいた意思決定を可能にする。
 
 #### 仕様
 - **データソース**: CSVファイルとして用意される、2つのシステム(ERP・CRM)から得られたデータをインポートする
