@@ -23,8 +23,6 @@
 
 use role sysadmin;
 use warehouse compute_wh;
-use database data_warehouse;
-use schema bronze;
 
 create or replace procedure data_warehouse.bronze.load_bronze()
 returns string
