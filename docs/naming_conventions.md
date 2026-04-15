@@ -73,7 +73,7 @@ This document outlines the naming conventions used for schemas, tables, views, c
 ## **Stored Procedure**
 
 - All stored procedures used for loading data must follow the naming pattern:
-- **`load_<layer>`**.
+- **`proc_load_<layer>`**.
   
   - `<layer>`: Represents the layer being loaded, such as `bronze`, `silver`, or `gold`.
   - Example: 
