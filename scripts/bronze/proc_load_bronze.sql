@@ -47,13 +47,14 @@ begin
     log_message := log_message || '------------------------------------------------\n';
     
     -- CRM_CUST_INFO
+    -- ※1 ステージ定義時にfile_formatを紐づけていても、スキーマをまたいだcopy intoの場合は再度明示的に指定する必要あり
     start_time := current_timestamp();
     log_message := log_message || '>> Truncating Table: BRONZE.CRM_CUST_INFO\n';
     truncate table DATA_WAREHOUSE.BRONZE.CRM_CUST_INFO;
     log_message := log_message || '>> Inserting Data into Table: BRONZE.CRM_CUST_INFO\n';
     copy into DATA_WAREHOUSE.BRONZE.CRM_CUST_INFO
     from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/cust_info.csv
-    file_format = DATA_WAREHOUSE.STAGING.CSV_FORMAT;
+    file_format = DATA_WAREHOUSE.STAGING.CSV_FORMAT;    -- ※1
     loaded_rows := SQLROWCOUNT;  -- 直前のcopy intoで読み込まれた行を取得
     end_time := current_timestamp();
     log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
