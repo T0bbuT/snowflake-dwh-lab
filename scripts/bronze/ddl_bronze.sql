@@ -26,19 +26,14 @@ create or replace table data_warehouse.bronze.crm_cust_info (
     cst_create_date date
 );
 
--- todo: 
--- 教材ではprd_start_dt, prd_end_dtの型をdatetimeにしていた
--- 理由不明。必要ないことが分かればdate型に直す
--- → 特に意図はなさそうだった。むしろここでdatetimeで定義していたものを後からdateにcastしていたので
--- ここでの定義時点でdateにしたほうが良いだろう
 create or replace table data_warehouse.bronze.crm_prd_info (
     prd_id int,
     prd_key varchar(50),
     prd_nm varchar(50),
     prd_cost int,
     prd_line varchar(50),
-    prd_start_dt datetime, 
-    prd_end_dt datetime
+    prd_start_dt date, 
+    prd_end_dt date
 );
 
 create or replace table data_warehouse.bronze.crm_sales_details (
