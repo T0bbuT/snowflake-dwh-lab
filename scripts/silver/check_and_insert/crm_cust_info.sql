@@ -1,6 +1,45 @@
 -- ============================================================================
--- crm_cust_infoをbronze → silverへ
+-- DATA_WAREHOUSE.BRONZE.crm_cust_info のチェック、insert文下書き
 -- ============================================================================
+-- 完成品
+insert into data_warehouse.silver.crm_cust_info (
+    cst_id,
+    cst_key,
+    cst_firstname,
+    cst_lastname,
+    cst_marital_status,
+    cst_gndr,
+    cst_create_date
+)
+select
+    CST_ID,
+    CST_KEY,
+    trim(CST_FIRSTNAME) as CST_FIRSTNAME,
+    trim(CST_LASTNAME) as CST_LASTNAME,
+    case 
+        when upper(trim(CST_MARITAL_STATUS)) = 'M' then 'Married'
+        when upper(trim(CST_MARITAL_STATUS)) = 'S' then 'Single'
+        else 'n/a'
+    end as CST_MARITAL_STATUS,
+    case 
+        when upper(trim(CST_GNDR)) = 'F' then 'Female'
+        when upper(trim(CST_GNDR)) = 'M' then 'Male'
+        else 'n/a'
+    end as CST_GNDR,
+    CST_CREATE_DATE,
+from (
+    select
+        *,
+        row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
+    from bronze.crm_cust_info
+    where cst_id is not null    -- cst_idがnullの行は落とす
+)
+where
+    flag_last = 1;
+
+
+
+
 
 -- 初期チェック
 select top 1000

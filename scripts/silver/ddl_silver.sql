@@ -27,6 +27,7 @@ create or replace table data_warehouse.silver.crm_cust_info (
 
 create or replace table data_warehouse.silver.crm_prd_info (
     prd_id int,
+    cat_id varchar(50),
     prd_key varchar(50),
     prd_nm varchar(50),
     prd_cost int,
