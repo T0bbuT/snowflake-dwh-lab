@@ -25,17 +25,14 @@ create or replace table data_warehouse.silver.crm_cust_info (
     dwh_create_date datetime default CURRENT_TIMESTAMP()
 );
 
--- todo: 
--- 教材ではprd_start_dt, prd_end_dtの型をdatetimeにしていた
--- 理由不明。必要ないことが分かればdate型に直す
 create or replace table data_warehouse.silver.crm_prd_info (
     prd_id int,
     prd_key varchar(50),
     prd_nm varchar(50),
     prd_cost int,
     prd_line varchar(50),
-    prd_start_dt datetime, 
-    prd_end_dt datetime,
+    prd_start_dt date, 
+    prd_end_dt date,
     dwh_create_date datetime default CURRENT_TIMESTAMP()
 );
 
