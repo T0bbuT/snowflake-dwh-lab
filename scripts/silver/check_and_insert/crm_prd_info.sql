@@ -1,78 +1,93 @@
 -- ============================================================================
 -- DATA_WAREHOUSE.BRONZE.CRM_PRD_INFO のチェック、insert文下書き
 -- ============================================================================
-
 -- クエリ継ぎ足し場
-insert into data_warehouse.silver.crm_prd_info (
+INSERT INTO
+    data_warehouse.silver.crm_prd_info (
+        prd_id,
+        cat_id,
+        prd_key,
+        prd_nm,
+        prd_cost,
+        prd_line,
+        prd_start_dt,
+        prd_end_dt
+    )
+SELECT
     prd_id,
-    cat_id,
-    prd_key,
+    REPLACE(SUBSTR(prd_key, 1, 5), '-', '_') AS cat_id,
+    SUBSTR(prd_key, 7, LENGTH(prd_key)) AS prd_key,
     prd_nm,
-    prd_cost,
-    prd_line,
-    prd_start_dt, 
-    prd_end_dt
-)
-select
-    PRD_ID,
-    replace(substr(PRD_KEY, 1, 5), '-', '_') as cat_id,
-    substr(PRD_KEY, 7, length(PRD_KEY)) as prd_key,
-    PRD_NM,
-    coalesce(PRD_COST, 0) as prd_cost,
-    case upper(trim(PRD_LINE))
-        when 'M' then 'Mountain'
-        when 'R' then 'Road'
-        when 'S' then 'Other Sales'
-        when 'T' then 'Touring'
-        else 'n/a'
-    end as prd_line,
-    PRD_START_DT,
-    dateadd(
-        day, -1,
-        lead(PRD_START_DT, 1) over (
-            partition by PRD_KEY
-            order by PRD_START_DT asc
+    COALESCE(prd_cost, 0) AS prd_cost,
+    CASE UPPER(TRIM(prd_line))
+        WHEN 'M' THEN 'Mountain'
+        WHEN 'R' THEN 'Road'
+        WHEN 'S' THEN 'Other Sales'
+        WHEN 'T' THEN 'Touring'
+        ELSE 'n/a'
+    END AS prd_line,
+    prd_start_dt,
+    DATEADD(
+        day,
+        -1,
+        LEAD(prd_start_dt, 1) over (
+            PARTITION BY
+                prd_key
+            ORDER BY
+                prd_start_dt asc
         )
-    ) as PRD_END_DT
-from BRONZE.CRM_PRD_INFO;
-
+    ) AS prd_end_dt
+FROM
+    bronze.crm_prd_info;
 
 -- insert後の確認
-select * from data_warehouse.silver.crm_prd_info
-order by
+SELECT
+    *
+FROM
+    data_warehouse.silver.crm_prd_info
+ORDER BY
     cat_id desc,
     prd_key desc;
 
 -- 重複、nullチェック
-select
+SELECT
     prd_id,
     cat_id,
-    count(*)
-from silver.crm_prd_info
-group by all
-having
-    prd_id is null
-    or count(*) > 1;
+    COUNT(*)
+FROM
+    silver.crm_prd_info
+GROUP BY
+    ALL
+HAVING
+    prd_id IS NULL
+    OR COUNT(*) > 1;
 
-select prd_nm
-from silver.crm_prd_info
-where
-    prd_nm != trim(prd_nm);
+SELECT
+    prd_nm
+FROM
+    silver.crm_prd_info
+WHERE
+    prd_nm != TRIM(prd_nm);
 
-select prd_cost
-from silver.crm_prd_info
-where
-    prd_cost is null
-    or prd_cost < 0;
+SELECT
+    prd_cost
+FROM
+    silver.crm_prd_info
+WHERE
+    prd_cost IS NULL
+    OR prd_cost < 0;
 
-select distinct PRD_LINE
-from silver.crm_prd_info;
+SELECT DISTINCT
+    prd_line
+FROM
+    silver.crm_prd_info;
 
-select *
-from silver.crm_prd_info
-where
-    PRD_START_DT > PRD_END_DT;
-    
+SELECT
+    *
+FROM
+    silver.crm_prd_info
+WHERE
+    prd_start_dt > prd_end_dt;
 
 -- TRUNCATE
-truncate table data_warehouse.silver.crm_prd_info;
+TRUNCATE TABLE data_warehouse.silver.crm_prd_info;

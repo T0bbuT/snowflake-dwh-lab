@@ -2,265 +2,347 @@
 -- DATA_WAREHOUSE.BRONZE.crm_cust_info のチェック、insert文下書き
 -- ============================================================================
 -- 完成品
-insert into data_warehouse.silver.crm_cust_info (
+INSERT INTO
+    data_warehouse.silver.crm_cust_info (
+        cst_id,
+        cst_key,
+        cst_firstname,
+        cst_lastname,
+        cst_marital_status,
+        cst_gndr,
+        cst_create_date
+    )
+SELECT
     cst_id,
     cst_key,
-    cst_firstname,
-    cst_lastname,
-    cst_marital_status,
-    cst_gndr,
-    cst_create_date
-)
-select
-    CST_ID,
-    CST_KEY,
-    trim(CST_FIRSTNAME) as CST_FIRSTNAME,
-    trim(CST_LASTNAME) as CST_LASTNAME,
-    case 
-        when upper(trim(CST_MARITAL_STATUS)) = 'M' then 'Married'
-        when upper(trim(CST_MARITAL_STATUS)) = 'S' then 'Single'
-        else 'n/a'
-    end as CST_MARITAL_STATUS,
-    case 
-        when upper(trim(CST_GNDR)) = 'F' then 'Female'
-        when upper(trim(CST_GNDR)) = 'M' then 'Male'
-        else 'n/a'
-    end as CST_GNDR,
-    CST_CREATE_DATE,
-from (
-    select
-        *,
-        row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
-    from bronze.crm_cust_info
-    where cst_id is not null    -- cst_idがnullの行は落とす
-)
-where
+    TRIM(cst_firstname) AS cst_firstname,
+    TRIM(cst_lastname) AS cst_lastname,
+    CASE
+        WHEN UPPER(TRIM(cst_marital_status)) = 'M' THEN 'Married'
+        WHEN UPPER(TRIM(cst_marital_status)) = 'S' THEN 'Single'
+        ELSE 'n/a'
+    END AS cst_marital_status,
+    CASE
+        WHEN UPPER(TRIM(cst_gndr)) = 'F' THEN 'Female'
+        WHEN UPPER(TRIM(cst_gndr)) = 'M' THEN 'Male'
+        ELSE 'n/a'
+    END AS cst_gndr,
+    cst_create_date,
+FROM
+    (
+        SELECT
+            *,
+            ROW_NUMBER() over (
+                PARTITION BY
+                    cst_id
+                ORDER BY
+                    cst_create_date desc
+            ) AS flag_last
+        FROM
+            bronze.crm_cust_info
+        WHERE
+            cst_id IS NOT NULL -- cst_idがnullの行は落とす
+    )
+WHERE
     flag_last = 1;
 
-
-
-
-
 -- 初期チェック
-select top 1000
-*
-from bronze.crm_cust_info;
+SELECT
+    top 1000 *
+FROM
+    bronze.crm_cust_info;
 
 -- ============================================================================
 -- 1. 主キーたるcst_idに重複がある。見ていく
 -- ============================================================================
-select
+SELECT
     cst_id,
-    count(*)
-from bronze.crm_cust_info
-group by cst_id
-having
-    count(*) > 1
-    or cst_id is null;
+    COUNT(*)
+FROM
+    bronze.crm_cust_info
+GROUP BY
+    cst_id
+HAVING
+    COUNT(*) > 1
+    OR cst_id IS NULL;
 
-select *
-from bronze.crm_cust_info
-where
-    cst_id is null;
+SELECT
+    *
+FROM
+    bronze.crm_cust_info
+WHERE
+    cst_id IS NULL;
 
-select *
-from bronze.crm_cust_info
-where
+SELECT
+    *
+FROM
+    bronze.crm_cust_info
+WHERE
     cst_id = 29466;
 
 -- window関数(rouw_number)を使って、cst_create_dateが一番新しいものを抜き取ることにする
-select
+SELECT
     *,
-    row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
-from bronze.crm_cust_info
-where
+    ROW_NUMBER() over (
+        PARTITION BY
+            cst_id
+        ORDER BY
+            cst_create_date desc
+    ) AS flag_last
+FROM
+    bronze.crm_cust_info
+WHERE
     cst_id = 29466;
 
-select
+SELECT
     *,
-    row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
-from bronze.crm_cust_info
-where 
-    cst_id is null;
+    ROW_NUMBER() over (
+        PARTITION BY
+            cst_id
+        ORDER BY
+            cst_create_date desc
+    ) AS flag_last
+FROM
+    bronze.crm_cust_info
+WHERE
+    cst_id IS NULL;
 
+SELECT
+    top 1000 *,
+    ROW_NUMBER() over (
+        PARTITION BY
+            cst_id
+        ORDER BY
+            cst_create_date desc
+    ) AS flag_last
+FROM
+    bronze.crm_cust_info;
 
-select top 1000
-    *,
-    row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
-from bronze.crm_cust_info;
-
-select *
-from (
-    select
-        *,
-        row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
-    from bronze.crm_cust_info
-)
-where flag_last != 1;
+SELECT
+    *
+FROM
+    (
+        SELECT
+            *,
+            ROW_NUMBER() over (
+                PARTITION BY
+                    cst_id
+                ORDER BY
+                    cst_create_date desc
+            ) AS flag_last
+        FROM
+            bronze.crm_cust_info
+    )
+WHERE
+    flag_last != 1;
 
 -- cst_create_dateが一番新しいものを抜き取ったテーブル
 -- これでcst_idの重複を排除したテーブルが手に入った
-select *
-from (
-    select
-        *,
-        row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
-    from bronze.crm_cust_info
-)
-where flag_last = 1;
+SELECT
+    *
+FROM
+    (
+        SELECT
+            *,
+            ROW_NUMBER() over (
+                PARTITION BY
+                    cst_id
+                ORDER BY
+                    cst_create_date desc
+            ) AS flag_last
+        FROM
+            bronze.crm_cust_info
+    )
+WHERE
+    flag_last = 1;
 
 -- ============================================================================
 -- 2. 次に、いずれかのカラムに不要な空白が入ったレコードが散見される。見ていく
 -- ============================================================================
-select
+SELECT
     cst_firstname
-from bronze.crm_cust_info
-where
-    cst_firstname != trim(cst_firstname);
+FROM
+    bronze.crm_cust_info
+WHERE
+    cst_firstname != TRIM(cst_firstname);
 
-select
+SELECT
     cst_lastname
-from bronze.crm_cust_info
-where
-    cst_lastname != trim(cst_lastname);
+FROM
+    bronze.crm_cust_info
+WHERE
+    cst_lastname != TRIM(cst_lastname);
 
 -- 不要な空白が入るのはcst_firstnameとcst_lastnameの2つのよう
-select top 1000
-    CST_ID,
-    CST_KEY,
-    trim(CST_FIRSTNAME) as CST_FIRSTNAME,
-    trim(CST_LASTNAME) as CST_LASTNAME,
-    CST_MARITAL_STATUS,
-    CST_GNDR,
-    CST_CREATE_DATE
-from bronze.crm_cust_info;
+SELECT
+    top 1000 cst_id,
+    cst_key,
+    TRIM(cst_firstname) AS cst_firstname,
+    TRIM(cst_lastname) AS cst_lastname,
+    cst_marital_status,
+    cst_gndr,
+    cst_create_date
+FROM
+    bronze.crm_cust_info;
 
 -- ============================================================================
 -- 3. 1と2を合体
 -- ============================================================================
-select
-    CST_ID,
-    CST_KEY,
-    trim(CST_FIRSTNAME) as CST_FIRSTNAME,
-    trim(CST_LASTNAME) as CST_LASTNAME,
-    CST_MARITAL_STATUS,
-    CST_GNDR,
-    CST_CREATE_DATE,
-from (
-    select
-        *,
-        row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
-    from bronze.crm_cust_info
-    where cst_id is not null    -- cst_idがnullの行は落とす
-)
-where
+SELECT
+    cst_id,
+    cst_key,
+    TRIM(cst_firstname) AS cst_firstname,
+    TRIM(cst_lastname) AS cst_lastname,
+    cst_marital_status,
+    cst_gndr,
+    cst_create_date,
+FROM
+    (
+        SELECT
+            *,
+            ROW_NUMBER() over (
+                PARTITION BY
+                    cst_id
+                ORDER BY
+                    cst_create_date desc
+            ) AS flag_last
+        FROM
+            bronze.crm_cust_info
+        WHERE
+            cst_id IS NOT NULL -- cst_idがnullの行は落とす
+    )
+WHERE
     flag_last = 1;
 
 -- ============================================================================
 -- 4. CST_MARITAL_STATUS, CST_GNDR列を調べる
 -- ============================================================================
-select
+SELECT
     cst_marital_status,
-    count(*)
-from bronze.crm_cust_info
-group by cst_marital_status;
+    COUNT(*)
+FROM
+    bronze.crm_cust_info
+GROUP BY
+    cst_marital_status;
 
 -- 一旦これが完成形？
-select
-    CST_ID,
-    CST_KEY,
-    trim(CST_FIRSTNAME) as CST_FIRSTNAME,
-    trim(CST_LASTNAME) as CST_LASTNAME,
+SELECT
+    cst_id,
+    cst_key,
+    TRIM(cst_firstname) AS cst_firstname,
+    TRIM(cst_lastname) AS cst_lastname,
     -- CST_MARITAL_STATUS,
-    case 
-        when upper(trim(CST_MARITAL_STATUS)) = 'M' then 'Married'
-        when upper(trim(CST_MARITAL_STATUS)) = 'S' then 'Single'
-        else 'n/a'
-    end as CST_MARITAL_STATUS,
-    case 
-        when upper(trim(CST_GNDR)) = 'F' then 'Female'
-        when upper(trim(CST_GNDR)) = 'M' then 'Male'
-        else 'n/a'
-    end as CST_GNDR,
-    CST_CREATE_DATE,
-from (
-    select
-        *,
-        row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
-    from bronze.crm_cust_info
-    where cst_id is not null    -- cst_idがnullの行は落とす
-)
-where
+    CASE
+        WHEN UPPER(TRIM(cst_marital_status)) = 'M' THEN 'Married'
+        WHEN UPPER(TRIM(cst_marital_status)) = 'S' THEN 'Single'
+        ELSE 'n/a'
+    END AS cst_marital_status,
+    CASE
+        WHEN UPPER(TRIM(cst_gndr)) = 'F' THEN 'Female'
+        WHEN UPPER(TRIM(cst_gndr)) = 'M' THEN 'Male'
+        ELSE 'n/a'
+    END AS cst_gndr,
+    cst_create_date,
+FROM
+    (
+        SELECT
+            *,
+            ROW_NUMBER() over (
+                PARTITION BY
+                    cst_id
+                ORDER BY
+                    cst_create_date desc
+            ) AS flag_last
+        FROM
+            bronze.crm_cust_info
+        WHERE
+            cst_id IS NOT NULL -- cst_idがnullの行は落とす
+    )
+WHERE
     flag_last = 1;
 
 -- ============================================================================
 -- 5. sliver層へのinsert
 -- ============================================================================
-insert into data_warehouse.silver.crm_cust_info (
+INSERT INTO
+    data_warehouse.silver.crm_cust_info (
+        cst_id,
+        cst_key,
+        cst_firstname,
+        cst_lastname,
+        cst_marital_status,
+        cst_gndr,
+        cst_create_date
+    )
+SELECT
     cst_id,
     cst_key,
-    cst_firstname,
-    cst_lastname,
-    cst_marital_status,
-    cst_gndr,
-    cst_create_date
-)
-select
-    CST_ID,
-    CST_KEY,
-    trim(CST_FIRSTNAME) as CST_FIRSTNAME,
-    trim(CST_LASTNAME) as CST_LASTNAME,
-    case 
-        when upper(trim(CST_MARITAL_STATUS)) = 'M' then 'Married'
-        when upper(trim(CST_MARITAL_STATUS)) = 'S' then 'Single'
-        else 'n/a'
-    end as CST_MARITAL_STATUS,
-    case 
-        when upper(trim(CST_GNDR)) = 'F' then 'Female'
-        when upper(trim(CST_GNDR)) = 'M' then 'Male'
-        else 'n/a'
-    end as CST_GNDR,
-    CST_CREATE_DATE,
-from (
-    select
-        *,
-        row_number() over (partition by cst_id order by CST_CREATE_DATE desc) as flag_last
-    from bronze.crm_cust_info
-    where cst_id is not null    -- cst_idがnullの行は落とす
-)
-where
+    TRIM(cst_firstname) AS cst_firstname,
+    TRIM(cst_lastname) AS cst_lastname,
+    CASE
+        WHEN UPPER(TRIM(cst_marital_status)) = 'M' THEN 'Married'
+        WHEN UPPER(TRIM(cst_marital_status)) = 'S' THEN 'Single'
+        ELSE 'n/a'
+    END AS cst_marital_status,
+    CASE
+        WHEN UPPER(TRIM(cst_gndr)) = 'F' THEN 'Female'
+        WHEN UPPER(TRIM(cst_gndr)) = 'M' THEN 'Male'
+        ELSE 'n/a'
+    END AS cst_gndr,
+    cst_create_date,
+FROM
+    (
+        SELECT
+            *,
+            ROW_NUMBER() over (
+                PARTITION BY
+                    cst_id
+                ORDER BY
+                    cst_create_date desc
+            ) AS flag_last
+        FROM
+            bronze.crm_cust_info
+        WHERE
+            cst_id IS NOT NULL -- cst_idがnullの行は落とす
+    )
+WHERE
     flag_last = 1;
 
 -- ============================================================================
 -- 6. 品質チェック
 -- ============================================================================
-
 -- truncate table data_warehouse.silver.crm_cust_info;
-
-select * from DATA_WAREHOUSE.SILVER.CRM_CUST_INFO;
+SELECT
+    *
+FROM
+    data_warehouse.silver.crm_cust_info;
 
 -- 重複排除
-select 
-    count(*),
-    count(distinct cst_id),
-from DATA_WAREHOUSE.SILVER.CRM_CUST_INFO;
+SELECT
+    COUNT(*),
+    COUNT(DISTINCT cst_id),
+FROM
+    data_warehouse.silver.crm_cust_info;
 
 -- nullの混入チェック
-select 
-    count(*)
-from DATA_WAREHOUSE.SILVER.CRM_CUST_INFO
-where
-    cst_id is null;
+SELECT
+    COUNT(*)
+FROM
+    data_warehouse.silver.crm_cust_info
+WHERE
+    cst_id IS NULL;
 
 -- 空白の混入をチェック
-select
+SELECT
     cst_firstname
-from silver.crm_cust_info
-where
-    cst_firstname != trim(cst_firstname);
+FROM
+    silver.crm_cust_info
+WHERE
+    cst_firstname != TRIM(cst_firstname);
 
-select
+SELECT
     cst_lastname
-from silver.crm_cust_info
-where
-    cst_lastname != trim(cst_lastname);
+FROM
+    silver.crm_cust_info
+WHERE
+    cst_lastname != TRIM(cst_lastname);
