@@ -32,7 +32,7 @@ create or replace table data_warehouse.silver.crm_prd_info (
     prd_nm varchar(50),
     prd_cost int,
     prd_line varchar(50),
-    prd_start_dt date, 
+    prd_start_dt date,
     prd_end_dt date,
     dwh_create_date datetime default CURRENT_TIMESTAMP()
 );
