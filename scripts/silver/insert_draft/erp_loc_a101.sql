@@ -1,11 +1,92 @@
+-- ================================================================================
+-- コンテキスト設定
+-- ================================================================================
 USE DATABASE data_warehouse;
 
+USE ROLE sysadmin;
+
+USE WAREHOUSE compute_wh;
+
+-- ================================================================================
+-- クエリ継ぎ足し
+-- ================================================================================
 SELECT
-    top 10 *
+    REPLACE(cid, '-', '') AS cid,
+    cntry
 FROM
     bronze.erp_loc_a101;
 
+-- ================================================================================
+-- 元のテーブル確認
+-- ================================================================================
+-- erp_loc_a101
 SELECT
-    COUNT(*)
+    cid,
+    cntry
 FROM
     bronze.erp_loc_a101;
+
+-- crm_cust_info
+-- erp_loc_a101のcidと、crm_cust_infoのcst_keyをつなげたい
+SELECT
+    cst_id,
+    cst_key,
+    cst_firstname,
+    cst_lastname,
+    cst_marital_status,
+    cst_gndr,
+    cst_create_date
+FROM
+    silver.crm_cust_info;
+
+-- ================================================================================
+-- 実験: cidについて
+-- ================================================================================
+-- erp_cust_az12のときのとは違い、どれも'AW%'から始まっている
+-- nullも存在しない
+SELECT
+    cid,
+FROM
+    bronze.erp_loc_a101
+WHERE
+    cid NOT like 'AW%'
+    OR cid IS NULL;
+
+-- しかし、どのcidもcst_keyと一致しない
+-- よく見ると、cidの形式が'AW-xxxx'と、不要なハイフンが混ざっている
+SELECT
+    cid,
+FROM
+    bronze.erp_loc_a101
+WHERE
+    cid IN (
+        SELECT
+            cst_key
+        FROM
+            silver.crm_cust_info
+    );
+
+-- ハイフンを取り除くことで、全てのcidをcst_keyに紐づけることができた
+SELECT
+    REPLACE(cid, '-', '') AS cid_
+FROM
+    bronze.erp_loc_a101
+WHERE
+    cid_ NOT IN (
+        SELECT
+            cst_key
+        FROM
+            silver.crm_cust_info
+    );
+
+-- ================================================================================
+-- 実験: cntryについて
+-- ================================================================================
+-- だいぶ汚い。表記揺れ、スペース、nullなど色々混ざっている
+SELECT
+    cntry,
+    COUNT(*)
+FROM
+    bronze.erp_loc_a101
+GROUP BY
+    ALL;
