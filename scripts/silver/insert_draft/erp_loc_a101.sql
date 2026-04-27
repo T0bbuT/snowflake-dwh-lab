@@ -18,7 +18,7 @@ SELECT
         WHEN TRIM(cntry) = 'DE' THEN 'Germany'
         WHEN TRIM(cntry) IN ('US', 'USA') THEN 'United States'
         WHEN TRIM(cntry) = ''
-        OR TRIM(cntry) IS NULL THEN 'n/a'
+        OR cntry IS NULL THEN 'n/a'
         ELSE TRIM(cntry)
     END AS cntry
 FROM
@@ -27,8 +27,50 @@ FROM
 -- ================================================================================
 -- Insert後の確認
 -- ================================================================================
+SELECT
+    *
+FROM
+    silver.erp_loc_a101;
 
+SELECT
+    *
+FROM
+    bronze.erp_loc_a101;
 
+SELECT
+    COUNT(*)
+FROM
+    silver.erp_loc_a101;
+
+SELECT
+    COUNT(*)
+FROM
+    bronze.erp_loc_a101;
+
+SELECT
+    cid,
+FROM
+    silver.erp_loc_a101
+WHERE
+    cid NOT like 'AW%'
+    OR cid IS NULL;
+
+SELECT
+    cid
+FROM
+    silver.erp_loc_a101
+WHERE
+    cid NOT IN (
+        SELECT
+            cst_key
+        FROM
+            silver.crm_cust_info
+    );
+
+SELECT DISTINCT
+    cntry
+FROM
+    silver.erp_loc_a101;
 
 -- ================================================================================
 -- 元のテーブル確認
@@ -112,7 +154,7 @@ SELECT DISTINCT
         WHEN TRIM(cntry) = 'DE' THEN 'Germany'
         WHEN TRIM(cntry) IN ('US', 'USA') THEN 'United States'
         WHEN TRIM(cntry) = ''
-        OR TRIM(cntry) IS NULL THEN 'n/a'
+        OR cntry IS NULL THEN 'n/a'
         ELSE TRIM(cntry)
     END AS cntry_
 FROM
