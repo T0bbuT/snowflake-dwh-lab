@@ -16,6 +16,38 @@ USE WAREHOUSE compute_wh;
 -- ================================================================================
 -- 元のテーブル確認
 -- ================================================================================
+SELECT
+    id,
+    cat,
+    subcat,
+    maintenance
+FROM
+    bronze.erp_px_cat_g1v2;
+
+SELECT
+    prd_id,
+    cat_id,
+    prd_key,
+    prd_nm,
+    prd_cost,
+    prd_line,
+    prd_start_dt,
+    prd_end_dt
+FROM
+    silver.crm_prd_info;
+
 -- ================================================================================
--- 実験: について
+-- 実験: idについて
 -- ================================================================================
+-- erp_px_cat_g1v2とsilver.crm_prd_infoの間でつながってるの、crm_prd_infoの
+SELECT
+    *
+FROM
+    bronze.erp_px_cat_g1v2
+WHERE
+    id IN (
+        SELECT
+            cat_id
+        FROM
+            silver.crm_prd_info
+    );
