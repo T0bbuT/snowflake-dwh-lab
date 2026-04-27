@@ -2,7 +2,7 @@
 -- DATA_WAREHOUSE.BRONZE.CRM_PRD_INFO のチェック、insert文下書き
 -- ============================================================================
 -- クエリ継ぎ足し場
-INSERT INTO
+INSERT OVERWRITE INTO
     data_warehouse.silver.crm_prd_info (
         prd_id,
         cat_id,
@@ -40,14 +40,27 @@ SELECT
 FROM
     bronze.crm_prd_info;
 
+-- ============================================================================
 -- insert後の確認
+-- ============================================================================
 SELECT
     *
 FROM
-    data_warehouse.silver.crm_prd_info
+    silver.crm_prd_info
 ORDER BY
     cat_id desc,
     prd_key desc;
+
+SELECT
+    count(*)
+FROM
+    silver.crm_prd_info
+;
+SELECT
+    count(*)
+FROM
+    bronze.crm_prd_info
+;
 
 -- 重複、nullチェック
 SELECT

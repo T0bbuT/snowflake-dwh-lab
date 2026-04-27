@@ -6,7 +6,7 @@ USE DATABASE data_warehouse;
 -- ================================================================================
 -- クエリ継ぎ足し
 -- ================================================================================
-INSERT INTO
+INSERT OVERWRITE INTO
     data_warehouse.silver.erp_cust_az12 (cid, bdate, gen)
 SELECT
     CASE
@@ -33,6 +33,16 @@ SELECT
     *
 FROM
     silver.erp_cust_az12;
+
+SELECT
+    COUNT(*)
+FROM
+    silver.erp_cust_az12;
+
+SELECT
+    COUNT(*)
+FROM
+    bronze.erp_cust_az12;
 
 -- cid列
 SELECT

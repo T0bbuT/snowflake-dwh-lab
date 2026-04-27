@@ -10,7 +10,7 @@ USE WAREHOUSE compute_wh;
 -- ================================================================================
 -- クエリ継ぎ足し
 -- ================================================================================
-INSERT INTO
+INSERT OVERWRITE INTO
     data_warehouse.silver.erp_loc_a101 (cid, cntry)
 SELECT
     REPLACE(cid, '-', '') AS cid,

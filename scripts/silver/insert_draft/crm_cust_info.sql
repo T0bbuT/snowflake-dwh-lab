@@ -2,7 +2,7 @@
 -- DATA_WAREHOUSE.BRONZE.crm_cust_info のチェック、insert文下書き
 -- ============================================================================
 -- 完成品
-INSERT INTO
+INSERT OVERWRITE INTO
     data_warehouse.silver.crm_cust_info (
         cst_id,
         cst_key,
@@ -46,9 +46,26 @@ FROM
 WHERE
     flag_last = 1;
 
--- 初期チェック
+-- ============================================================================
+-- INSERT後のチェック
+-- ============================================================================
 SELECT
-    top 1000 *
+    *
+FROM
+    silver.crm_cust_info;
+
+SELECT
+    *
+FROM
+    bronze.crm_cust_info;
+
+SELECT
+    COUNT(*)
+FROM
+    silver.crm_cust_info;
+
+SELECT
+    COUNT(*)
 FROM
     bronze.crm_cust_info;
 

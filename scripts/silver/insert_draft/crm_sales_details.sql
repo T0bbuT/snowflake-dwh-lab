@@ -3,7 +3,7 @@ USE DATABASE data_warehouse;
 -- ================================================================================
 -- データ移行スクリプト: bronzeからsilverへのデータ移行
 -- ================================================================================
-INSERT INTO
+INSERT OVERWRITE INTO
     data_warehouse.silver.crm_sales_details (
         sls_ord_num,
         sls_prd_key,
@@ -67,9 +67,13 @@ FROM
     bronze.crm_sales_details;
 
 SELECT
-    *
+    count(*)
 FROM
     silver.crm_sales_details;
+SELECT
+    count(*)
+FROM
+    bronze.crm_sales_details;
 
 -- 実験
 SELECT
