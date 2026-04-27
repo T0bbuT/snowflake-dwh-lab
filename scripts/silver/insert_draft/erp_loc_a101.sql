@@ -10,11 +10,25 @@ USE WAREHOUSE compute_wh;
 -- ================================================================================
 -- クエリ継ぎ足し
 -- ================================================================================
+INSERT INTO
+    data_warehouse.silver.erp_loc_a101 (cid, cntry)
 SELECT
     REPLACE(cid, '-', '') AS cid,
-    cntry
+    CASE
+        WHEN TRIM(cntry) = 'DE' THEN 'Germany'
+        WHEN TRIM(cntry) IN ('US', 'USA') THEN 'United States'
+        WHEN TRIM(cntry) = ''
+        OR TRIM(cntry) IS NULL THEN 'n/a'
+        ELSE TRIM(cntry)
+    END AS cntry
 FROM
-    bronze.erp_loc_a101;
+    data_warehouse.bronze.erp_loc_a101;
+
+-- ================================================================================
+-- Insert後の確認
+-- ================================================================================
+
+
 
 -- ================================================================================
 -- 元のテーブル確認
@@ -82,7 +96,7 @@ WHERE
 -- ================================================================================
 -- 実験: cntryについて
 -- ================================================================================
--- だいぶ汚い。表記揺れ、スペース、nullなど色々混ざっている
+-- だいぶ汚い。略称が使われたり、スペース、nullなど色々混ざっている
 SELECT
     cntry,
     COUNT(*)
@@ -90,3 +104,18 @@ FROM
     bronze.erp_loc_a101
 GROUP BY
     ALL;
+
+-- case式の挙動を確認。大丈夫そう
+SELECT DISTINCT
+    cntry,
+    CASE
+        WHEN TRIM(cntry) = 'DE' THEN 'Germany'
+        WHEN TRIM(cntry) IN ('US', 'USA') THEN 'United States'
+        WHEN TRIM(cntry) = ''
+        OR TRIM(cntry) IS NULL THEN 'n/a'
+        ELSE TRIM(cntry)
+    END AS cntry_
+FROM
+    bronze.erp_loc_a101
+ORDER BY
+    cntry_;
