@@ -24,8 +24,6 @@
 use role sysadmin;
 use warehouse compute_wh;
 
--- TODO: このままだと、loaded_rowsがテーブルの行数の2倍になってしまう
--- 恐らく原因はinsert intoにoverwriteオプションを入れていることにより、内部的にtruncateとinsertの両方を実行しているため？
 create or replace procedure data_warehouse.silver.load_silver()
 returns string
 language sql
@@ -49,8 +47,10 @@ begin
 
     -- crm_cust_info
     start_time := current_timestamp();
-    log_message := log_message || '>> Processing Table: SILVER.CRM_CUST_INFO\n';
-    INSERT OVERWRITE INTO
+    log_message := log_message || '>> Truncating Table: SILVER.CRM_CUST_INFO\n';
+    TRUNCATE TABLE data_warehouse.silver.crm_cust_info;
+    log_message := log_message || '>> Inserting Data into Table: SILVER.CRM_CUST_INFO\n';
+    INSERT INTO
         data_warehouse.silver.crm_cust_info (
             cst_id,
             cst_key,
@@ -99,8 +99,10 @@ begin
 
     -- crm_prd_info
     start_time := current_timestamp();
-    log_message := log_message || '>> Processing Table: SILVER.CRM_PRD_INFO\n';
-    INSERT OVERWRITE INTO
+    log_message := log_message || '>> Truncating Table: SILVER.CRM_PRD_INFO\n';
+    TRUNCATE TABLE data_warehouse.silver.crm_prd_info;
+    log_message := log_message || '>> Inserting Data into Table: SILVER.CRM_PRD_INFO\n';
+    INSERT INTO
         data_warehouse.silver.crm_prd_info (
             prd_id,
             cat_id,
@@ -143,8 +145,10 @@ begin
 
     -- crm_sales_details
     start_time := current_timestamp();
-    log_message := log_message || '>> Processing Table: SILVER.CRM_SALES_DETAILS\n';
-    INSERT OVERWRITE INTO
+    log_message := log_message || '>> Truncating Table: SILVER.CRM_SALES_DETAILS\n';
+    TRUNCATE TABLE data_warehouse.silver.crm_sales_details;
+    log_message := log_message || '>> Inserting Data into Table: SILVER.CRM_SALES_DETAILS\n';
+    INSERT INTO
         data_warehouse.silver.crm_sales_details (
             sls_ord_num,
             sls_prd_key,
@@ -201,8 +205,10 @@ begin
 
     -- erp_cust_az12
     start_time := current_timestamp();
-    log_message := log_message || '>> Processing Table: SILVER.ERP_CUST_AZ12\n';
-    INSERT OVERWRITE INTO
+    log_message := log_message || '>> Truncating Table: SILVER.ERP_CUST_AZ12\n';
+    TRUNCATE TABLE data_warehouse.silver.erp_cust_az12;
+    log_message := log_message || '>> Inserting Data into Table: SILVER.ERP_CUST_AZ12\n';
+    INSERT INTO
         data_warehouse.silver.erp_cust_az12 (cid, bdate, gen)
     SELECT
         CASE
@@ -228,8 +234,10 @@ begin
 
     -- erp_loc_a101
     start_time := current_timestamp();
-    log_message := log_message || '>> Processing Table: SILVER.ERP_LOC_A101\n';
-    INSERT OVERWRITE INTO
+    log_message := log_message || '>> Truncating Table: SILVER.ERP_LOC_A101\n';
+    TRUNCATE TABLE data_warehouse.silver.erp_loc_a101;
+    log_message := log_message || '>> Inserting Data into Table: SILVER.ERP_LOC_A101\n';
+    INSERT INTO
         data_warehouse.silver.erp_loc_a101 (cid, cntry)
     SELECT
         REPLACE(cid, '-', '') AS cid,
@@ -250,8 +258,10 @@ begin
 
     -- erp_px_cat_g1v2
     start_time := current_timestamp();
-    log_message := log_message || '>> Processing Table: SILVER.ERP_PX_CAT_G1V2\n';
-    INSERT OVERWRITE INTO
+    log_message := log_message || '>> Truncating Table: SILVER.ERP_PX_CAT_G1V2\n';
+    TRUNCATE TABLE data_warehouse.silver.erp_px_cat_g1v2;
+    log_message := log_message || '>> Inserting Data into Table: SILVER.ERP_PX_CAT_G1V2\n';
+    INSERT INTO
         data_warehouse.silver.erp_px_cat_g1v2 (id, cat, subcat, maintenance)
     SELECT
         id,
