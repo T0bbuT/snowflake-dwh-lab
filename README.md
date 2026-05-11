@@ -65,8 +65,3 @@ https://www.udemy.com/course/building-a-modern-data-warehouse-data-engineering-b
 ## ライセンス
 
 本リポジトリは[MITライセンス](LICENSE)の下で公開されています。
-
-## 私について
-
-T0bbuTといいます。データ関連の仕事に就くために学習中です。  
-学習した内容を、実際に手を動かして形にしながら理解を深めることを大切にしています。
