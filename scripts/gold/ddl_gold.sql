@@ -40,3 +40,19 @@ FROM
 WHERE
     pn.prd_end_dt IS NULL -- end_dtが入力されている過去の商品については扱わない
 ;
+
+-- fact_sales
+SELECT
+    sd.sls_ord_num,
+    pr.product_key,
+    cu.customer_key,
+    sd.sls_order_dt,
+    sd.sls_ship_dt,
+    sd.sls_due_dt,
+    sd.sls_sales,
+    sd.sls_quantity,
+    sd.sls_price,
+FROM
+    data_warehouse.silver.crm_sales_details AS sd
+    LEFT JOIN data_warehouse.gold.dim_products AS pr ON sd.sls_prd_key = pr.product_number
+    LEFT JOIN data_warehouse.gold.dim_customers AS cu ON sd.sls_cust_id = cu.customer_id;
