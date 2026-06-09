@@ -1,5 +1,7 @@
+CREATE OR REPLACE VIEW data_warehouse.gold.dim_customers AS
 SELECT
-    ci.cst_id AS customer_id,
+    MD5(ci.cst_id) AS customer_key, -- サロゲートキー
+    ci.cst_id AS customer_id, -- ナチュラルキー
     ci.cst_key AS customer_number,
     ci.cst_firstname AS first_name,
     ci.cst_lastname AS last_name,
