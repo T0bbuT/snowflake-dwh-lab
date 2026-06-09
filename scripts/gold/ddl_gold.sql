@@ -1,3 +1,4 @@
+-- dim_customers
 CREATE OR REPLACE VIEW data_warehouse.gold.dim_customers AS
 SELECT
     MD5(ci.cst_id) AS customer_key, -- サロゲートキー
@@ -18,3 +19,24 @@ FROM
     data_warehouse.silver.crm_cust_info AS ci
     LEFT JOIN data_warehouse.silver.erp_cust_az12 AS ca ON ci.cst_key = ca.cid
     LEFT JOIN data_warehouse.silver.erp_loc_a101 AS la ON ci.cst_key = la.cid;
+
+-- dim_products
+CREATE OR REPLACE VIEW data_warehouse.gold.dim_products AS
+SELECT
+    MD5(pn.prd_id) AS product_key, -- サロゲートキー
+    pn.prd_id AS product_id, -- ナチュラルキー
+    pn.prd_key AS product_number,
+    pn.prd_nm AS product_name,
+    pn.cat_id AS category_id,
+    pc.cat AS category,
+    pc.subcat AS subcategory,
+    pc.maintenance,
+    pn.prd_cost AS cost,
+    pn.prd_line AS product_line,
+    pn.prd_start_dt AS start_date,
+FROM
+    data_warehouse.silver.crm_prd_info AS pn
+    LEFT JOIN data_warehouse.silver.erp_px_cat_g1v2 AS pc ON pn.cat_id = pc.id
+WHERE
+    pn.prd_end_dt IS NULL -- end_dtが入力されている過去の商品については扱わない
+;
