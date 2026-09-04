@@ -38,7 +38,7 @@ FROM
     data_warehouse.silver.crm_prd_info AS pn
     LEFT JOIN data_warehouse.silver.erp_px_cat_g1v2 AS pc ON pn.cat_id = pc.id
 WHERE
-    pn.prd_end_dt IS NULL -- end_dtが入力されている過去の商品については扱わない
+    pn.prd_end_dt IS NULL -- end_dtが入力されていないもののみを対象とする(入力されているものは、既に終了したもの)
 ;
 
 -- fact_sales
