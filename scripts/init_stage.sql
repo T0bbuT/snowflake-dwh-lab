@@ -32,8 +32,9 @@ CREATE OR REPLACE STAGE DATA_WAREHOUSE.STAGING.STG_CSV_FILES
     COMMENT = 'Internal stage for loading CSV source files into Bronze layer';
 
 -- ステージにworkspace内のcsvを投入
+-- TODO: workspace内から投入するの、あまり気に入らない。snowflake cli使っているのだから、ローカルからPUTするほうが良いだろう
 COPY FILES INTO @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
-FROM 'snow://workspace/USER$.PUBLIC."sql-data-warehouse-project"/versions/head'
+FROM 'snow://workspace/USER$.PUBLIC."snowflake-dwh-lab"/versions/head'
 FILES=(
     'datasets/source_crm/cust_info.csv',
     'datasets/source_crm/prd_info.csv',
