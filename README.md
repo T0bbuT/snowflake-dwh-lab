@@ -72,6 +72,11 @@ https://www.udemy.com/course/building-a-modern-data-warehouse-data-engineering-b
 - Snowflake特有のステージやコンテキスト管理を含めて実装
 - 学習記録ではなく、再現可能なデータ基盤プロジェクトとして整理
 
+## CSVの取り込み手順
+
+ローカルの `datasets/` にあるCSVをSnowflake CLIで内部ステージへアップロードし、Bronzeテーブルへ取り込みます。
+ターミナルでの操作は[ローカルCSVの取り込みガイド](docs/load-local-csv.md)を参照してください。
+
 ## リポジトリの構成
 
 ```text
@@ -86,6 +91,7 @@ snowflake-dwh-lab/
 │   ├── data_model.drawio.svg          # データモデル図
 │   ├── data_catalog.md                # データカタログ
 │   ├── naming_conventions.md          # 命名規則
+│   ├── load-local-csv.md              # CLIでローカルCSVを取り込む手順
 │   ├── setup-git-workspace.md         # SnowflakeとGitの連携手順
 │   └── setup-keypair-auth.md          # キーペア認証の設定手順
 ├── scripts/                           # Snowflake向けのSQLスクリプト
