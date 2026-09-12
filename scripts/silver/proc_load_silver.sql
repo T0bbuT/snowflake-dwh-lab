@@ -8,13 +8,20 @@
 
     以下の処理を実行する
     - ブロンズ層テーブルからの変換・ロード
-    - 各テーブルのロード状況と処理時間をログに記録
 
 引数:
     なし
 
 返り値:
-    実行中のログを記録したテキストを文字列として返す
+    成功時: 'SUCCESS'
+    失敗時: エラーメッセージ
+
+ログ:
+    実行中のログはEvent Tableに記録される。
+    確認方法は scripts/query_load_logs.sql を参照。
+
+前提:
+    - scripts/init_event_table.sql を事前に実行しておくこと
 
 使用例:
     call data_warehouse.silver.load_silver();
@@ -28,28 +35,25 @@ create or replace procedure data_warehouse.silver.load_silver()
 returns string
 language sql
 as
+$$
 declare
     batch_start_time    timestamp_ntz;
     batch_end_time      timestamp_ntz;
     start_time          timestamp_ntz;
     end_time            timestamp_ntz;
-    log_message         string default '';
     loaded_rows         integer;
 begin
     batch_start_time := current_timestamp();
-    log_message := '================================================\n';
-    log_message := log_message || 'Loading Silver Layer\n';
-    log_message := log_message || '================================================\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: start');
 
-    log_message := log_message || '------------------------------------------------\n';
-    log_message := log_message || 'Loading CRM Tables\n';
-    log_message := log_message || '------------------------------------------------\n';
+    -- CRM Tables
+    SYSTEM$LOG_INFO('LOAD_SILVER: === Loading CRM Tables ===');
 
     -- crm_cust_info
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: SILVER.CRM_CUST_INFO\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.CRM_CUST_INFO');
     TRUNCATE TABLE data_warehouse.silver.crm_cust_info;
-    log_message := log_message || '>> Inserting Data into Table: SILVER.CRM_CUST_INFO\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.CRM_CUST_INFO');
     INSERT INTO
         data_warehouse.silver.crm_cust_info (
             cst_id,
@@ -87,21 +91,19 @@ begin
             FROM
                 data_warehouse.bronze.crm_cust_info
             WHERE
-                cst_id IS NOT NULL -- cst_idがnullの行は落とす
+                cst_id IS NOT NULL
         )
     WHERE
         flag_last = 1;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message || '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message || '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: CRM_CUST_INFO loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
     -- crm_prd_info
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: SILVER.CRM_PRD_INFO\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.CRM_PRD_INFO');
     TRUNCATE TABLE data_warehouse.silver.crm_prd_info;
-    log_message := log_message || '>> Inserting Data into Table: SILVER.CRM_PRD_INFO\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.CRM_PRD_INFO');
     INSERT INTO
         data_warehouse.silver.crm_prd_info (
             prd_id,
@@ -139,15 +141,13 @@ begin
         data_warehouse.bronze.crm_prd_info;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message || '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message || '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: CRM_PRD_INFO loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
     -- crm_sales_details
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: SILVER.CRM_SALES_DETAILS\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.CRM_SALES_DETAILS');
     TRUNCATE TABLE data_warehouse.silver.crm_sales_details;
-    log_message := log_message || '>> Inserting Data into Table: SILVER.CRM_SALES_DETAILS\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.CRM_SALES_DETAILS');
     INSERT INTO
         data_warehouse.silver.crm_sales_details (
             sls_ord_num,
@@ -195,19 +195,16 @@ begin
         data_warehouse.bronze.crm_sales_details;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message || '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message || '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: CRM_SALES_DETAILS loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
-    log_message := log_message || '------------------------------------------------\n';
-    log_message := log_message || 'Loading ERP Tables\n';
-    log_message := log_message || '------------------------------------------------\n';
+    -- ERP Tables
+    SYSTEM$LOG_INFO('LOAD_SILVER: === Loading ERP Tables ===');
 
     -- erp_cust_az12
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: SILVER.ERP_CUST_AZ12\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.ERP_CUST_AZ12');
     TRUNCATE TABLE data_warehouse.silver.erp_cust_az12;
-    log_message := log_message || '>> Inserting Data into Table: SILVER.ERP_CUST_AZ12\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.ERP_CUST_AZ12');
     INSERT INTO
         data_warehouse.silver.erp_cust_az12 (cid, bdate, gen)
     SELECT
@@ -228,15 +225,13 @@ begin
         data_warehouse.bronze.erp_cust_az12;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message || '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message || '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: ERP_CUST_AZ12 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
     -- erp_loc_a101
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: SILVER.ERP_LOC_A101\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.ERP_LOC_A101');
     TRUNCATE TABLE data_warehouse.silver.erp_loc_a101;
-    log_message := log_message || '>> Inserting Data into Table: SILVER.ERP_LOC_A101\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.ERP_LOC_A101');
     INSERT INTO
         data_warehouse.silver.erp_loc_a101 (cid, cntry)
     SELECT
@@ -252,15 +247,13 @@ begin
         data_warehouse.bronze.erp_loc_a101;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message || '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message || '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: ERP_LOC_A101 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
     -- erp_px_cat_g1v2
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: SILVER.ERP_PX_CAT_G1V2\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.ERP_PX_CAT_G1V2');
     TRUNCATE TABLE data_warehouse.silver.erp_px_cat_g1v2;
-    log_message := log_message || '>> Inserting Data into Table: SILVER.ERP_PX_CAT_G1V2\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.ERP_PX_CAT_G1V2');
     INSERT INTO
         data_warehouse.silver.erp_px_cat_g1v2 (id, cat, subcat, maintenance)
     SELECT
@@ -272,25 +265,17 @@ begin
         data_warehouse.bronze.erp_px_cat_g1v2;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message || '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message || '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_SILVER: ERP_PX_CAT_G1V2 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
+    -- 完了
     batch_end_time := current_timestamp();
-    log_message := log_message || '\n==========================================\n';
-    log_message := log_message || 'Loading Silver Layer is Completed\n';
-    log_message := log_message || '     - Total Load Duration: ' || round(datediff(millisecond, batch_start_time, batch_end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '==========================================';
+    SYSTEM$LOG_INFO('LOAD_SILVER: completed in ' || round(datediff(millisecond, batch_start_time, batch_end_time) / 1000.0, 3) || 's');
 
-    RETURN log_message;
+    RETURN 'SUCCESS';
 
 exception
 when other then
-    log_message := log_message || '\n==========================================\n';
-    log_message := log_message || 'ERROR OCCURRED DURING LOADING SILVER LAYER\n';
-    log_message := log_message || 'Error Message: ' || SQLERRM || '\n';
-    log_message := log_message || 'Error Code: ' || SQLCODE || '\n';
-    log_message := log_message || '==========================================';
-
-    RETURN log_message;
+    SYSTEM$LOG_ERROR('LOAD_SILVER: failed - ' || SQLERRM || ' (code: ' || SQLCODE || ')');
+    RETURN 'ERROR: ' || SQLERRM;
 end;
+$$;
