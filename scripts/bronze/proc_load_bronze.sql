@@ -28,6 +28,7 @@ create or replace procedure data_warehouse.bronze.load_bronze()
 returns string
 language sql
 as
+$$
 declare
     batch_start_time    timestamp_ntz;
     batch_end_time      timestamp_ntz;
@@ -149,3 +150,4 @@ when other then
 
     RETURN log_message;
 end;
+$$;
