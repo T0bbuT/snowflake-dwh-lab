@@ -72,7 +72,12 @@ https://www.udemy.com/course/building-a-modern-data-warehouse-data-engineering-b
 - Snowflake特有のステージやコンテキスト管理を含めて実装
 - 学習記録ではなく、再現可能なデータ基盤プロジェクトとして整理
 
-## CSVの取り込み手順
+## セットアップ手順
+
+初めて構築するときは、[セットアップとデータ更新の実行順序](docs/setup.md)を参照してください。
+接続準備 → DB・ステージ・テーブル・プロシージャの作成 → ログ設定 → CSVアップロード → Bronze / Silverのロード → Goldの作成・品質確認までをまとめています。構築後のデータ更新や、定義変更時の再実行範囲も同じページに記載しています。
+
+### CSVの取り込み手順
 
 ローカルの `datasets/` にあるCSVをSnowflake CLIで内部ステージへアップロードし、Bronzeテーブルへ取り込みます。
 ターミナルでの操作は[ローカルCSVの取り込みガイド](docs/load-local-csv.md)を参照してください。
@@ -91,6 +96,7 @@ snowflake-dwh-lab/
 │   ├── data_model.drawio.svg          # データモデル図
 │   ├── data_catalog.md                # データカタログ
 │   ├── naming_conventions.md          # 命名規則
+│   ├── setup.md                       # 初回構築・データ更新の実行順序
 │   ├── load-local-csv.md              # CLIでローカルCSVを取り込む手順
 │   ├── setup-git-workspace.md         # SnowflakeとGitの連携手順
 │   └── setup-keypair-auth.md          # キーペア認証の設定手順
@@ -99,7 +105,9 @@ snowflake-dwh-lab/
 │   ├── silver/                       # クレンジング・変換処理
 │   ├── gold/                         # 分析用データモデルの定義
 │   ├── init_databases.sql             # データベース・スキーマの初期設定
-│   └── init_stage.sql                 # ステージの初期設定
+│   ├── init_stage.sql                 # ステージの初期設定
+│   ├── init_event_table.sql           # Event Table・ログレベルの設定
+│   └── query_load_logs.sql            # ロードログの確認
 ├── tests/                             # データ品質チェック用SQL
 │   ├── quality_checks_silver.sql
 │   └── quality_checks_gold.sql

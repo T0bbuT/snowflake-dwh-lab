@@ -21,17 +21,13 @@ snow connection test -c my_connection
 
 ## 1. 初回の準備
 
-既にこのリポジトリのDB・スキーマ・Bronzeテーブル・プロシージャを作成済みなら、下の初期化コマンドはスキップして「2. ステージの作成」へ進みます。
+初回は[セットアップガイド](setup.md)の手順1〜7を実行し、DB・ステージ・テーブル・プロシージャ・ログ設定を準備してください。完了したら、このページの「3. CSVをアップロード」へ進みます。
 
-**`init_databases.sql` は既存の `DATA_WAREHOUSE` を削除・再作成します。`ddl_bronze.sql` もテーブルを再作成するため、以下は新規環境の初期化時だけ実行してください。CSVを更新するたびに実行する必要はありません。**
-
-```bash
-snow sql -c my_connection -f scripts/init_databases.sql
-snow sql -c my_connection -f scripts/bronze/ddl_bronze.sql
-snow sql -c my_connection -f scripts/bronze/proc_load_bronze.sql
-```
+構築済みでCSVを更新する場合も、手順3から開始します。
 
 ## 2. ステージの作成
+
+セットアップガイドで作成済みならスキップします。ステージだけを作成し直す必要がある場合に実行してください。
 
 ```bash
 snow sql -c my_connection -f scripts/init_stage.sql
@@ -94,7 +90,7 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
   -q 'CALL DATA_WAREHOUSE.BRONZE.LOAD_BRONZE();'
 ```
 
-プロシージャの戻り値で完了ログを確認してください。現在の実装は例外を捕捉してエラーログを返すため、CLIの終了コードだけでなく、戻り値に `ERROR OCCURRED DURING LOADING BRONZE LAYER` がないことも確認します。
+プロシージャの戻り値が `SUCCESS` であることを確認してください。現在の実装は例外を捕捉して `ERROR: ...` を返すため、CLIの終了コードだけでは成功を判断できません。詳細ログの確認と、この後のSilver / Goldの処理は[セットアップガイド](setup.md)を参照してください。
 
 CSVを更新したら、手順3〜5を繰り返します。アップロードは同名ファイルの上書きであり、ローカルで削除したファイルをステージから削除する同期処理ではありません。
 
