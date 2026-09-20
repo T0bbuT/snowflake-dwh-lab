@@ -8,6 +8,8 @@
     - Event Table への書き込みには数分のラグがある場合がある
 ================================================================================
 */
+-- ACCOUNTADMIN ロールで実行すること（既定では他ロールに読み取り権限がない）
+USE ROLE ACCOUNTADMIN;
 
 -- LOAD_BRONZE のログを時系列で表示
 SELECT
@@ -20,7 +22,7 @@ WHERE
     RESOURCE_ATTRIBUTES['snow.executable.name'] LIKE '%LOAD_BRONZE%'
     AND RECORD_TYPE = 'LOG'
 ORDER BY
-    TIMESTAMP DESC
+    TIMESTAMP ASC
 LIMIT 100;
 
 -- LOAD_SILVER のログを時系列で表示
@@ -34,7 +36,7 @@ WHERE
     RESOURCE_ATTRIBUTES['snow.executable.name'] LIKE '%LOAD_SILVER%'
     AND RECORD_TYPE = 'LOG'
 ORDER BY
-    TIMESTAMP DESC
+    TIMESTAMP ASC
 LIMIT 100;
 
 -- エラーログのみ抽出
@@ -48,5 +50,5 @@ WHERE
     RECORD_TYPE = 'LOG'
     AND RECORD['severity_text']::STRING = 'ERROR'
 ORDER BY
-    TIMESTAMP DESC
+    TIMESTAMP ASC
 LIMIT 50;
