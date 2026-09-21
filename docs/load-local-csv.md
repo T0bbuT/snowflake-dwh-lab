@@ -1,53 +1,16 @@
-# ローカルCSVをSnowflake CLIで取り込む
+# CSVアップロードの補足
 
-ローカルの `datasets/` にあるCSVを `snow stage copy` で内部ステージへアップロードし、既存の `LOAD_BRONZE()` でBronzeテーブルへ取り込みます。SnowsightのワークスペースへのCSV配置は不要です。
+アップロード・配置確認・Bronze / Silverのロードまでの実行コマンドは、[セットアップガイドの手順7以降](setup.md#7-csvをステージへアップロードする)にまとめています。このページでは、アップロードオプションとファイル不足時の対応を説明します。
+
+## 取り込みの流れ
 
 ```text
 datasets/ → snow stage copy（内部でPUT）→ STG_CSV_FILES → LOAD_BRONZE() → Bronzeテーブル
 ```
 
-## 前提
+CSVはローカルから内部ステージへアップロードします。SnowsightのワークスペースへのCSV配置は不要です。ステージは初回構築時に作成するため、CSV更新のたびに作り直す必要はありません。
 
-- Snowflake CLI（`snow`）をインストール済みであること。
-- 接続設定が済んでいること。設定方法は[キーペア認証ガイド](setup-keypair-auth.md)を参照してください。
-- 接続ユーザーが `SYSADMIN` ロールと `COMPUTE_WH` ウェアハウスを利用できること。このリポジトリのSQLもこの設定を使用します。
-- 以下のコマンドはBashなどのターミナルで、リポジトリのルートから実行すること。
-
-`my_connection` は自分のCLI接続名に置き換えてください。
-
-```bash
-snow connection test -c my_connection
-```
-
-## 1. 初回の準備
-
-初回は[セットアップガイド](setup.md)の手順1〜6を実行し、DB・ステージ・テーブル・プロシージャ・ログ設定を準備してください。完了したら、このページの「3. CSVをアップロード」へ進みます。
-
-構築済みでCSVを更新する場合も、手順3から開始します。
-
-## 2. ステージの準備を確認
-
-ステージは[setup/rebuild.sql](../scripts/setup/rebuild.sql)でDB・テーブルと一緒に作成します。初回の準備を終えていれば、次の手順へ進んでください。
-
-CSVの追加・更新のためにステージを再作成する必要はありません。`rebuild.sql` はDB全体を置き換えるため、CSVアップロードの前処理として実行しないでください。
-
-## 3. CSVをアップロード
-
-```bash
-# CRMの3ファイル
-snow stage copy 'datasets/source_crm/*.csv' \
-  '@DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_crm/' \
-  -c my_connection --role SYSADMIN \
-  --database DATA_WAREHOUSE --schema STAGING \
-  --overwrite --no-auto-compress --refresh
-
-# ERPの3ファイル
-snow stage copy 'datasets/source_erp/*.csv' \
-  '@DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_erp/' \
-  -c my_connection --role SYSADMIN \
-  --database DATA_WAREHOUSE --schema STAGING \
-  --overwrite --no-auto-compress --refresh
-```
+## アップロードオプションの意味
 
 - `--overwrite`：同名ファイルを上書きします。
 - `--no-auto-compress`：gzipへ自動圧縮せず、`.csv` のまま配置します。
@@ -57,46 +20,17 @@ snow stage copy 'datasets/source_erp/*.csv' \
 
 アップロード先の `datasets/source_crm/` と `datasets/source_erp/` は、既存の `proc_load_bronze.sql` が参照するパスに合わせています。
 
-## 4. アップロード結果を確認
+アップロードは同名ファイルの上書きであり、ローカルで削除したファイルをステージから削除する同期処理ではありません。
 
-両方のアップロードが成功したことを確認してから、一覧を表示します。
+## ファイル不足時の対応
 
-```bash
-snow sql -c my_connection --role SYSADMIN \
-  -q 'LIST @DATA_WAREHOUSE.STAGING.STG_CSV_FILES;'
-```
-
-次の6ファイルが配置されていることを確認します（一覧ではステージ名が先頭に付きます）。
-
-```text
-datasets/source_crm/cust_info.csv
-datasets/source_crm/prd_info.csv
-datasets/source_crm/sales_details.csv
-datasets/source_erp/CUST_AZ12.csv
-datasets/source_erp/LOC_A101.csv
-datasets/source_erp/PX_CAT_G1V2.csv
-```
-
-## 5. Bronzeへ取り込む
-
-**`LOAD_BRONZE()` は必要な6ファイルの存在を確認してから、各Bronzeテーブルを `TRUNCATE` してCSVをロードします。既存データを入れ替える処理です。**
-
-```bash
-snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
-  -q 'CALL DATA_WAREHOUSE.BRONZE.LOAD_BRONZE();'
-```
-
-プロシージャの戻り値が `SUCCESS` であることを確認してください。現在の実装は例外を捕捉して `ERROR: ...` を返すため、CLIの終了コードだけでは成功を判断できません。詳細ログの確認と、この後のSilver / Goldの処理は[セットアップガイド](setup.md)を参照してください。
-
-`LOAD_BRONZE()` が `ERROR: Missing required CSV files: ...` を返した場合は、表示されたファイルを手順3の配置先へアップロードし、手順4の一覧を確認してから再実行してください。
+`LOAD_BRONZE()` が `ERROR: Missing required CSV files: ...` を返した場合は、表示されたファイルを[手順7の配置先](setup.md#7-csvをステージへアップロードする)へアップロードし、[手順8の一覧](setup.md#8-アップロード結果を確認する)を確認してから再実行してください。
 
 不足チェックは最初の `TRUNCATE` より前に全6ファイルを対象に行うため、このエラーではBronzeの既存データは変更されません。不足ファイルと再実行の案内はEvent Tableにも記録されます。
 
 プロシージャ内で `ALTER STAGE ... REFRESH` を実行し、ディレクトリテーブルの一覧を更新してから相対パスを完全一致で照合します。各 `COPY INTO` も `FILES` で対象を明示します。前回のCSVが残っている場合の更新漏れ、空ファイル・内容の不備、確認後のファイル変更は事前の存在チェックでは検出できません。PUTの完了を確認し、ロード中はステージのファイルを変更しないでください。ロード開始後のエラーでは、一部のテーブルが更新済みの場合があります。
 
 不足時のデータ保持と通常・再ロードの結果は[実機検証記録](validation-2026-09-21.md)を参照してください。
-
-CSVを更新したら、手順3〜5を繰り返します。アップロードは同名ファイルの上書きであり、ローカルで削除したファイルをステージから削除する同期処理ではありません。
 
 ## 参考
 

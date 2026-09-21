@@ -11,7 +11,7 @@
 ## 参照資料
 
 - 構築・更新の実行順序とコマンド: [docs/setup.md](docs/setup.md)
-- CSVアップロード: [docs/load-local-csv.md](docs/load-local-csv.md)
+- CSVアップロードのオプション・補足: [docs/load-local-csv.md](docs/load-local-csv.md)
 - 命名規則: [docs/naming_conventions.md](docs/naming_conventions.md)
 - Goldのデータ定義: [docs/data_catalog.md](docs/data_catalog.md)
 - 実機検証の結果・範囲・確認事項: [docs/validation-2026-09-13.md](docs/validation-2026-09-13.md)

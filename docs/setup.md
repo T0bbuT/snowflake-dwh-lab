@@ -29,12 +29,13 @@ SnowsightでGit上のSQLを編集・実行したい場合は、[Git Workspaceガ
 | 4 | [proc_load_bronze.sql](../scripts/bronze/proc_load_bronze.sql) | `LOAD_BRONZE()` を定義（まだロードしない） |
 | 5 | [proc_load_silver.sql](../scripts/silver/proc_load_silver.sql) | `LOAD_SILVER()` を定義（まだロードしない） |
 | 6 | [configure_logging.sql](../scripts/configure_logging.sql) | 両プロシージャのログレベルをINFOに設定 |
-| 7 | [CSVガイドの手順3〜4](load-local-csv.md#3-csvをアップロード) | CSVをアップロードし、ステージ内の6ファイルを確認 |
-| 8 | `CALL DATA_WAREHOUSE.BRONZE.LOAD_BRONZE();` | CSV → Bronze。戻り値が `SUCCESS` であることを確認 |
-| 9 | `CALL DATA_WAREHOUSE.SILVER.LOAD_SILVER();` | Bronze → Silver。戻り値が `SUCCESS` であることを確認 |
-| 10 | [quality_checks_silver.sql](../tests/quality_checks_silver.sql) | Silverの品質を確認 |
-| 11 | [ddl_gold.sql](../scripts/gold/ddl_gold.sql) | 顧客・商品・売上の3ビューを作成 |
-| 12 | [quality_checks_gold.sql](../tests/quality_checks_gold.sql) | Goldのキー重複・参照整合性を確認 |
+| 7 | [CSVをステージへアップロードする](#7-csvをステージへアップロードする) | CRM・ERPのCSVをローカルからアップロード |
+| 8 | [アップロード結果を確認する](#8-アップロード結果を確認する) | ステージ内に必要な6ファイルがすべてあることを確認 |
+| 9 | [Bronzeへロードする](#9-bronzeへロードする) | CSV → Bronze。戻り値が `SUCCESS` であることを確認 |
+| 10 | [Silverへロードする](#10-silverへロードする) | Bronze → Silver。戻り値が `SUCCESS` であることを確認 |
+| 11 | [Silverの品質を確認する](#11-silverの品質を確認する) | Silverの品質チェックを実行 |
+| 12 | [Goldを作成する](#12-goldを作成する) | 顧客・商品・売上の3ビューを作成 |
+| 13 | [Goldの品質を確認する](#13-goldの品質を確認する) | Goldのキー重複・参照整合性を確認 |
 
 手順6は両プロシージャへの `ALTER PROCEDURE` を含むため、必ず手順4〜5の後に実行します。ログ保存先・出力先・ログレベルは、ロードを呼び出す前に設定します。手順3はアカウント全体のEvent Table設定を変更するため、既存のログ出力先がある環境ではその設定を確認してください。
 
@@ -53,25 +54,77 @@ snow sql -c my_connection -f scripts/configure_logging.sql
 
 `rebuild.sql` はSnowflake CLIの `!source` で既存のBronze / SilverのDDLを読み込みます。参照パスはリポジトリルート基準です。CLI専用のコマンドを含むため、Snowsightでこのファイルを直接実行することはできません。[Snowflake CLIのファイル読み込み仕様](https://docs.snowflake.com/en/developer-guide/snowflake-cli/sql/execute-sql#execute-sql-in-local-files-or-urls)
 
-### 7〜10. CSVをロードし、Silverを確認する
+### 7. CSVをステージへアップロードする
 
-[CSVガイドの手順3〜4](load-local-csv.md#3-csvをアップロード)でアップロードと6ファイルの確認を済ませた後、以下を1コマンドずつ実行します。
+手順1〜6では、CSVのアップロードはまだ行っていません。ローカルの `datasets/` にあるCRM・ERPの計6ファイルを、内部ステージへアップロードします。以下の2コマンドをリポジトリのルートから順に実行してください。
+
+```bash
+# CRMの3ファイル
+snow stage copy 'datasets/source_crm/*.csv' \
+  '@DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_crm/' \
+  -c my_connection --role SYSADMIN \
+  --database DATA_WAREHOUSE --schema STAGING \
+  --overwrite --no-auto-compress --refresh
+
+# ERPの3ファイル
+snow stage copy 'datasets/source_erp/*.csv' \
+  '@DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_erp/' \
+  -c my_connection --role SYSADMIN \
+  --database DATA_WAREHOUSE --schema STAGING \
+  --overwrite --no-auto-compress --refresh
+```
+
+両方のコマンドが正常に完了したら、手順8で配置されたファイルを確認します。オプションの意味は[CSVアップロードの補足](load-local-csv.md#アップロードオプションの意味)を参照してください。
+
+### 8. アップロード結果を確認する
+
+両方のアップロードが成功したことを確認してから、一覧を表示します。
+
+```bash
+snow sql -c my_connection --role SYSADMIN \
+  -q 'LIST @DATA_WAREHOUSE.STAGING.STG_CSV_FILES;'
+```
+
+次の6ファイルが配置されていることを確認します（一覧ではステージ名が先頭に付きます）。
+
+```text
+datasets/source_crm/cust_info.csv
+datasets/source_crm/prd_info.csv
+datasets/source_crm/sales_details.csv
+datasets/source_erp/CUST_AZ12.csv
+datasets/source_erp/LOC_A101.csv
+datasets/source_erp/PX_CAT_G1V2.csv
+```
+
+**上記6ファイルがすべて確認できたら、手順9のBronzeロードへ進みます。** 不足やパスの違いがあれば、手順7のアップロード先を確認して再実行してください。前回のCSVが残っている場合は一覧だけで更新完了を判断できないため、今回のアップロード結果も確認します。
+
+### 9. Bronzeへロードする
+
+ステージ上のCSVをBronzeテーブルへ取り込みます。ここからは既存データを全件入れ替える処理です。
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
   -q 'CALL DATA_WAREHOUSE.BRONZE.LOAD_BRONZE();'
 ```
 
-戻り値が `SUCCESS` なら、Silverへ進みます。
+戻り値が `SUCCESS` であることを確認してから、手順10へ進みます。両ロードプロシージャは失敗時に `ERROR: ...` を返すため、CLIの終了コードだけでは成功を判断できません。
+
+Bronzeは最初の `TRUNCATE` より前にステージの一覧を更新し、必要な6ファイルを確認します。`ERROR: Missing required CSV files: ...` の場合は全Bronzeテーブルを変更せず終了します。表示された不足ファイルを[手順7](#7-csvをステージへアップロードする)でアップロードし、[手順8](#8-アップロード結果を確認する)で確認してから再実行してください。
+
+その他のエラーでは、ロードが始まり一部だけ更新されている可能性があります。Silverへ進まず、[ログを確認](#ログを確認する)してください。ファイルの存在チェックでは、CSVの更新漏れや内容の正しさは判断しません。
+
+### 10. Silverへロードする
+
+Bronzeの戻り値が `SUCCESS` であることを確認したら、クレンジング・標準化してSilverへ取り込みます。
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
   -q 'CALL DATA_WAREHOUSE.SILVER.LOAD_SILVER();'
 ```
 
-両プロシージャは例外を捕捉し、失敗時には `ERROR: ...` を返します。CLIの終了コードだけでは成功を判断できません。エラーがあれば次のレイヤへ進まず、下記のログを確認してください。ロードは各テーブルを `TRUNCATE` して入れ替えるため、失敗時は一部だけ更新されている可能性があります。
+戻り値が `SUCCESS` であることを確認してから、手順11へ進みます。`ERROR: ...` の場合は後続の処理へ進まず、[ログを確認](#ログを確認する)してください。Silverも全件入れ替えのため、失敗時は一部だけ更新されている可能性があります。
 
-Bronzeは最初の `TRUNCATE` より前にステージの一覧を更新し、必要な6ファイルを確認します。`ERROR: Missing required CSV files: ...` の場合は全Bronzeテーブルを変更せず終了します。表示された不足ファイルを[CSVガイド](load-local-csv.md#3-csvをアップロード)に従ってアップロードしてから再実行してください。前回のCSVが残っている場合の更新漏れやファイル内容の正しさは、この存在チェックでは判断しません。
+### 11. Silverの品質を確認する
 
 Silverが `SUCCESS` になったら品質を確認します。
 
@@ -84,11 +137,20 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 
 生年月日のチェックは実行日から120年前より古い日付を確認対象として抽出します（120年前の同日は対象外）。120歳は調査の目安であり、不正値と断定する基準ではありません。100歳前後を含め、古い日付は元の値を保持します。未来の日付は変換処理でNULLにするため、Silverで検出された場合は処理を調査してください。
 
-### 11〜12. Goldを作成して確認する
+### 12. Goldを作成する
+
+Silverの品質確認が済んだら、分析用の3ビューを作成します。
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
   -f scripts/gold/ddl_gold.sql
+```
+
+### 13. Goldの品質を確認する
+
+ビュー作成が成功したら、キー重複・参照整合性を確認します。
+
+```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
   -f tests/quality_checks_gold.sql
 ```
@@ -108,12 +170,12 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 
 構築済みなら、次の順序で実行します。
 
-1. [CSVガイドの手順3〜4](load-local-csv.md#3-csvをアップロード)でCSVを上書きアップロードし、ファイルを確認する。
+1. このページの[手順7](#7-csvをステージへアップロードする)でCSVを上書きアップロードし、[手順8](#8-アップロード結果を確認する)で6ファイルを確認する。
 2. `LOAD_BRONZE()` を呼び、`SUCCESS` を確認する。
 3. `LOAD_SILVER()` を呼び、`SUCCESS` を確認する。
 4. Silver / Goldの品質チェックを実行し、必要に応じてログを確認する。
 
-コマンドは上の手順7〜12を参照してください。Goldのビュー定義を変更していなければ、手順11のDDL実行は不要です。
+コマンドは上の手順7〜13を参照してください。Goldのビュー定義を変更していなければ、手順12のDDL実行は不要です。
 
 ## 定義を変更したときの再実行範囲
 
@@ -126,7 +188,7 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 | Goldのビュー定義だけ変更 | `ddl_gold.sql` → Gold品質チェック |
 | ログ出力先を設定し直す | 保存先が存在することを確認 → `setup/configure_event_target.sql` |
 | Bronze / Silverのテーブルを再作成 | 対象の `ddl_*.sql` → 対象レイヤから下流のロード・品質確認。列定義を変えた場合は関連プロシージャ・ビューも整合させる |
-| DB全体を作り直す | 初回構築・再構築の手順1〜12をすべて実行 |
+| DB全体を作り直す | 初回構築・再構築の手順1〜13をすべて実行 |
 
 プロシージャ更新の例（Bronzeを変更した場合）:
 

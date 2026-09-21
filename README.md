@@ -80,7 +80,7 @@ https://www.udemy.com/course/building-a-modern-data-warehouse-data-engineering-b
 ### CSVの取り込み手順
 
 ローカルの `datasets/` にあるCSVをSnowflake CLIで内部ステージへアップロードし、Bronzeテーブルへ取り込みます。
-ターミナルでの操作は[ローカルCSVの取り込みガイド](docs/load-local-csv.md)を参照してください。
+実行コマンドは[セットアップガイドの手順7以降](docs/setup.md#7-csvをステージへアップロードする)、オプションやエラー時の説明は[CSVアップロードの補足](docs/load-local-csv.md)を参照してください。
 
 ## リポジトリの構成
 
@@ -97,7 +97,7 @@ snowflake-dwh-lab/
 │   ├── data_catalog.md                # データカタログ
 │   ├── naming_conventions.md          # 命名規則
 │   ├── setup.md                       # 初回構築・データ更新の実行順序
-│   ├── load-local-csv.md              # CLIでローカルCSVを取り込む手順
+│   ├── load-local-csv.md              # CSVアップロードのオプション・補足
 │   ├── setup-git-workspace.md         # SnowflakeとGitの連携手順
 │   └── setup-keypair-auth.md          # キーペア認証の設定手順
 ├── scripts/                           # Snowflake向けのSQLスクリプト
