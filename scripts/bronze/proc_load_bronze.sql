@@ -7,6 +7,8 @@
     ブロンズ層のテーブルへとcsvをロードする
     
     以下の処理を実行する
+    - ステージの一覧を更新し、必要な6ファイルがすべて存在することを確認する
+    - 不足時は対象ファイルを返し、テーブルを変更せず終了する
     - ロード前に、ブロンズ層のテーブルをtruncateする
     - `copy into`により、csvデータをブロンズ層のテーブルにロードする
 
@@ -14,7 +16,17 @@
     なし
 
 返り値:
-    実行中のログを記録したテキストを文字列として返す
+    成功時: 'SUCCESS'
+    失敗時: エラーメッセージ
+
+ログ:
+    実行中のログはEvent Tableに記録される。
+    確認方法は scripts/query_load_logs.sql を参照。
+
+前提:
+    - scripts/setup/ensure_event_table.sql と configure_event_target.sql でログ保存先・出力先を設定済みであること
+    - scripts/configure_logging.sql をロード呼び出し前に実行しておくこと
+    - STG_CSV_FILESのディレクトリテーブルが有効であること
 
 使用例:
     call data_warehouse.bronze.load_bronze();
@@ -28,124 +40,139 @@ create or replace procedure data_warehouse.bronze.load_bronze()
 returns string
 language sql
 as
+$$
 declare
     batch_start_time    timestamp_ntz;
     batch_end_time      timestamp_ntz;
     start_time          timestamp_ntz;
     end_time            timestamp_ntz;
-    log_message         string default '';
     loaded_rows         integer;
+    missing_files       string;
+    error_message       string;
 begin
     batch_start_time := current_timestamp();
-    log_message :=                '================================================\n';
-    log_message := log_message || 'Loading Bronze Layer\n';
-    log_message := log_message || '================================================\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: start');
+
+    -- 最初のTRUNCATEより前に、6ファイルすべてを完全一致で確認する。
+    -- PUT / REMOVE後の古いメタデータで判断しないよう、ここで一覧を更新する。
+    ALTER STAGE DATA_WAREHOUSE.STAGING.STG_CSV_FILES REFRESH;
+
+    SELECT LISTAGG(required.relative_path, ', ')
+        WITHIN GROUP (ORDER BY required.relative_path)
+    INTO :missing_files
+    FROM (VALUES
+        ('datasets/source_crm/cust_info.csv'),
+        ('datasets/source_crm/prd_info.csv'),
+        ('datasets/source_crm/sales_details.csv'),
+        ('datasets/source_erp/CUST_AZ12.csv'),
+        ('datasets/source_erp/LOC_A101.csv'),
+        ('datasets/source_erp/PX_CAT_G1V2.csv')
+    ) AS required(relative_path)
+    LEFT JOIN DIRECTORY(@DATA_WAREHOUSE.STAGING.STG_CSV_FILES) AS staged
+        ON staged.relative_path = required.relative_path
+    WHERE staged.relative_path IS NULL;
+
+    IF (COALESCE(missing_files, '') <> '') THEN
+        error_message := 'Missing required CSV files: ' || missing_files
+            || '. Upload the CSV files to STG_CSV_FILES and rerun LOAD_BRONZE().'
+            || ' Bronze tables were not modified.';
+        SYSTEM$LOG_ERROR('LOAD_BRONZE: failed - ' || error_message);
+        RETURN 'ERROR: ' || error_message;
+    END IF;
 
     -- CRM Tables
-    log_message := log_message || '------------------------------------------------\n';
-    log_message := log_message || 'Loading CRM Tables\n';
-    log_message := log_message || '------------------------------------------------\n';
-    
+    SYSTEM$LOG_INFO('LOAD_BRONZE: === Loading CRM Tables ===');
+
     -- CRM_CUST_INFO
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: BRONZE.CRM_CUST_INFO\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.CRM_CUST_INFO');
     truncate table DATA_WAREHOUSE.BRONZE.CRM_CUST_INFO;
-    log_message := log_message || '>> Inserting Data into Table: BRONZE.CRM_CUST_INFO\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.CRM_CUST_INFO');
     copy into DATA_WAREHOUSE.BRONZE.CRM_CUST_INFO
-    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/cust_info.csv;
-    loaded_rows := SQLROWCOUNT;  -- 直前のcopy intoで読み込まれた行を取得
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_crm/cust_info.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
+    loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: CRM_CUST_INFO loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
     -- CRM_PRD_INFO
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: BRONZE.CRM_PRD_INFO\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.CRM_PRD_INFO');
     truncate table DATA_WAREHOUSE.BRONZE.CRM_PRD_INFO;
-    log_message := log_message || '>> Inserting Data into Table: BRONZE.CRM_PRD_INFO\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.CRM_PRD_INFO');
     copy into DATA_WAREHOUSE.BRONZE.CRM_PRD_INFO
-    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/prd_info.csv;
-    loaded_rows := SQLROWCOUNT;  -- 直前のcopy intoで読み込まれた行を取得
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_crm/prd_info.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
+    loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: CRM_PRD_INFO loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
     -- CRM_SALES_DETAILS
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: BRONZE.CRM_SALES_DETAILS\n';
-    truncate table DATA_WAREHOUSE.BRONZE.CRM_SALES_DETAILS;    
-    log_message := log_message || '>> Inserting Data into Table: BRONZE.CRM_SALES_DETAILS\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.CRM_SALES_DETAILS');
+    truncate table DATA_WAREHOUSE.BRONZE.CRM_SALES_DETAILS;
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.CRM_SALES_DETAILS');
     copy into DATA_WAREHOUSE.BRONZE.CRM_SALES_DETAILS
-    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/sales_details.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_crm/sales_details.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: CRM_SALES_DETAILS loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
     -- ERP Tables
-    log_message := log_message || '------------------------------------------------\n';
-    log_message := log_message || 'Loading ERP Tables\n';
-    log_message := log_message || '------------------------------------------------\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: === Loading ERP Tables ===');
 
     -- ERP_CUST_AZ12
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: BRONZE.ERP_CUST_AZ12\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.ERP_CUST_AZ12');
     truncate table DATA_WAREHOUSE.BRONZE.ERP_CUST_AZ12;
-    log_message := log_message || '>> Inserting Data into Table: BRONZE.ERP_CUST_AZ12\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.ERP_CUST_AZ12');
     copy into DATA_WAREHOUSE.BRONZE.ERP_CUST_AZ12
-    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_erp/CUST_AZ12.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_erp/CUST_AZ12.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: ERP_CUST_AZ12 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
-    -- erp_loc_a101
+    -- ERP_LOC_A101
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: BRONZE.ERP_LOC_A101\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.ERP_LOC_A101');
     TRUNCATE TABLE DATA_WAREHOUSE.BRONZE.ERP_LOC_A101;
-    log_message := log_message || '>> Inserting Data into Table: BRONZE.ERP_LOC_A101\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.ERP_LOC_A101');
     COPY INTO DATA_WAREHOUSE.BRONZE.ERP_LOC_A101
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_erp/LOC_A101.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_erp/LOC_A101.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message ||  '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: ERP_LOC_A101 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
-    -- erp_px_cat_g1v2
+    -- ERP_PX_CAT_G1V2
     start_time := current_timestamp();
-    log_message := log_message || '>> Truncating Table: BRONZE.ERP_PX_CAT_G1V2\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.ERP_PX_CAT_G1V2');
     TRUNCATE TABLE DATA_WAREHOUSE.BRONZE.ERP_PX_CAT_G1V2;
-    log_message := log_message || '>> Inserting Data into Table: BRONZE.ERP_PX_CAT_G1V2\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.ERP_PX_CAT_G1V2');
     COPY INTO DATA_WAREHOUSE.BRONZE.ERP_PX_CAT_G1V2
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_erp/PX_CAT_G1V2.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_erp/PX_CAT_G1V2.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
-    log_message := log_message ||  '>> Loaded: ' || :loaded_rows || ' rows\n';
-    log_message := log_message || '>> Load Duration: ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '----------\n';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: ERP_PX_CAT_G1V2 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
 
-    -- 処理全体にかかった時間の出力
+    -- 完了
     batch_end_time := current_timestamp();
-    log_message := log_message || '\n==========================================\n';
-    log_message := log_message || 'Loading Bronze Layer is Completed\n';
-    log_message := log_message || '     - Tota Load Duration: ' || round(datediff(millisecond, batch_start_time, batch_end_time) / 1000.0, 3) || ' seconds\n';
-    log_message := log_message || '==========================================';
+    SYSTEM$LOG_INFO('LOAD_BRONZE: completed in ' || round(datediff(millisecond, batch_start_time, batch_end_time) / 1000.0, 3) || 's');
 
-    RETURN log_message;
+    RETURN 'SUCCESS';
 
--- 例外処理
 exception
 when other then
-    log_message := log_message || '\n==========================================\n';
-    log_message := log_message || 'ERROR OCCURRED DURING LOADING BRONZE LAYER\n';
-    log_message := log_message || 'Error Message: ' || SQLERRM || '\n';
-    log_message := log_message || 'Error Code: ' || SQLCODE || '\n';
-    log_message := log_message || '==========================================';
-
-    RETURN log_message;
+    SYSTEM$LOG_ERROR('LOAD_BRONZE: failed - ' || SQLERRM || ' (code: ' || SQLCODE || ')');
+    RETURN 'ERROR: ' || SQLERRM;
 end;
+$$;

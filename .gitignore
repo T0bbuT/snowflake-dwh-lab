@@ -1,2 +1,8 @@
-scratchpad.sql
-.codex
+# ローカルの作業メモ・ツール設定
+/scratchpad.sql
+/TODO.md
+/.codex/
+/.cortex/
+
+# Snowflake認証用の秘密鍵
+rsa_key.p8
