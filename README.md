@@ -104,9 +104,11 @@ snowflake-dwh-lab/
 │   ├── bronze/                       # 生データのテーブル定義・取り込み
 │   ├── silver/                       # クレンジング・変換処理
 │   ├── gold/                         # 分析用データモデルの定義
-│   ├── init_databases.sql             # データベース・スキーマの初期設定
-│   ├── init_stage.sql                 # ステージの初期設定
-│   ├── init_event_table.sql           # Event Table・ログレベルの設定
+│   ├── setup/                        # 初回構築・再構築用
+│   │   ├── rebuild.sql               # DB・ステージ・テーブルの再作成
+│   │   ├── ensure_event_table.sql    # ログ保存先がなければ作成
+│   │   └── configure_event_target.sql # アカウントのログ出力先設定
+│   ├── configure_logging.sql         # プロシージャのログレベル設定
 │   └── query_load_logs.sql            # ロードログの確認
 ├── tests/                             # データ品質チェック用SQL
 │   ├── quality_checks_silver.sql

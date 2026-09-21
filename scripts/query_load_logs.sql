@@ -3,7 +3,8 @@
 ログ確認用クエリ: Event Table からロードログを参照する
 ================================================================================
 前提:
-    - scripts/init_event_table.sql を事前に実行しておくこと
+    - scripts/setup/ensure_event_table.sql と configure_event_target.sql でログ保存先・出力先を設定済みであること
+    - scripts/configure_logging.sql をロード呼び出し前に実行しておくこと
     - LOAD_BRONZE / LOAD_SILVER を少なくとも一度実行済みであること
     - Event Table への書き込みには数分のラグがある場合がある
 ================================================================================
