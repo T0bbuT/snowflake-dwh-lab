@@ -79,7 +79,7 @@ datasets/source_erp/PX_CAT_G1V2.csv
 
 ## 5. Bronzeへ取り込む
 
-**既存の `LOAD_BRONZE()` は各Bronzeテーブルを `TRUNCATE` してからCSVをロードします。既存データを入れ替える処理です。**
+**`LOAD_BRONZE()` は必要な6ファイルの存在を確認してから、各Bronzeテーブルを `TRUNCATE` してCSVをロードします。既存データを入れ替える処理です。**
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
@@ -87,6 +87,14 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 ```
 
 プロシージャの戻り値が `SUCCESS` であることを確認してください。現在の実装は例外を捕捉して `ERROR: ...` を返すため、CLIの終了コードだけでは成功を判断できません。詳細ログの確認と、この後のSilver / Goldの処理は[セットアップガイド](setup.md)を参照してください。
+
+`LOAD_BRONZE()` が `ERROR: Missing required CSV files: ...` を返した場合は、表示されたファイルを手順3の配置先へアップロードし、手順4の一覧を確認してから再実行してください。
+
+不足チェックは最初の `TRUNCATE` より前に全6ファイルを対象に行うため、このエラーではBronzeの既存データは変更されません。不足ファイルと再実行の案内はEvent Tableにも記録されます。
+
+プロシージャ内で `ALTER STAGE ... REFRESH` を実行し、ディレクトリテーブルの一覧を更新してから相対パスを完全一致で照合します。各 `COPY INTO` も `FILES` で対象を明示します。前回のCSVが残っている場合の更新漏れ、空ファイル・内容の不備、確認後のファイル変更は事前の存在チェックでは検出できません。PUTの完了を確認し、ロード中はステージのファイルを変更しないでください。ロード開始後のエラーでは、一部のテーブルが更新済みの場合があります。
+
+不足時のデータ保持と通常・再ロードの結果は[実機検証記録](validation-2026-09-21.md)を参照してください。
 
 CSVを更新したら、手順3〜5を繰り返します。アップロードは同名ファイルの上書きであり、ローカルで削除したファイルをステージから削除する同期処理ではありません。
 

@@ -15,6 +15,7 @@
 - 命名規則: [docs/naming_conventions.md](docs/naming_conventions.md)
 - Goldのデータ定義: [docs/data_catalog.md](docs/data_catalog.md)
 - 実機検証の結果・範囲・確認事項: [docs/validation-2026-09-13.md](docs/validation-2026-09-13.md)
+- CSV不足時のデータ保持・通常ロード・再ロードの実機検証: [docs/validation-2026-09-21.md](docs/validation-2026-09-21.md)
 
 ## Snowflakeでの実機検証
 

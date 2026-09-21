@@ -7,6 +7,8 @@
     ブロンズ層のテーブルへとcsvをロードする
     
     以下の処理を実行する
+    - ステージの一覧を更新し、必要な6ファイルがすべて存在することを確認する
+    - 不足時は対象ファイルを返し、テーブルを変更せず終了する
     - ロード前に、ブロンズ層のテーブルをtruncateする
     - `copy into`により、csvデータをブロンズ層のテーブルにロードする
 
@@ -24,6 +26,7 @@
 前提:
     - scripts/setup/ensure_event_table.sql と configure_event_target.sql でログ保存先・出力先を設定済みであること
     - scripts/configure_logging.sql をロード呼び出し前に実行しておくこと
+    - STG_CSV_FILESのディレクトリテーブルが有効であること
 
 使用例:
     call data_warehouse.bronze.load_bronze();
@@ -44,9 +47,38 @@ declare
     start_time          timestamp_ntz;
     end_time            timestamp_ntz;
     loaded_rows         integer;
+    missing_files       string;
+    error_message       string;
 begin
     batch_start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: start');
+
+    -- 最初のTRUNCATEより前に、6ファイルすべてを完全一致で確認する。
+    -- PUT / REMOVE後の古いメタデータで判断しないよう、ここで一覧を更新する。
+    ALTER STAGE DATA_WAREHOUSE.STAGING.STG_CSV_FILES REFRESH;
+
+    SELECT LISTAGG(required.relative_path, ', ')
+        WITHIN GROUP (ORDER BY required.relative_path)
+    INTO :missing_files
+    FROM (VALUES
+        ('datasets/source_crm/cust_info.csv'),
+        ('datasets/source_crm/prd_info.csv'),
+        ('datasets/source_crm/sales_details.csv'),
+        ('datasets/source_erp/CUST_AZ12.csv'),
+        ('datasets/source_erp/LOC_A101.csv'),
+        ('datasets/source_erp/PX_CAT_G1V2.csv')
+    ) AS required(relative_path)
+    LEFT JOIN DIRECTORY(@DATA_WAREHOUSE.STAGING.STG_CSV_FILES) AS staged
+        ON staged.relative_path = required.relative_path
+    WHERE staged.relative_path IS NULL;
+
+    IF (COALESCE(missing_files, '') <> '') THEN
+        error_message := 'Missing required CSV files: ' || missing_files
+            || '. Upload the CSV files to STG_CSV_FILES and rerun LOAD_BRONZE().'
+            || ' Bronze tables were not modified.';
+        SYSTEM$LOG_ERROR('LOAD_BRONZE: failed - ' || error_message);
+        RETURN 'ERROR: ' || error_message;
+    END IF;
 
     -- CRM Tables
     SYSTEM$LOG_INFO('LOAD_BRONZE: === Loading CRM Tables ===');
@@ -57,7 +89,9 @@ begin
     truncate table DATA_WAREHOUSE.BRONZE.CRM_CUST_INFO;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.CRM_CUST_INFO');
     copy into DATA_WAREHOUSE.BRONZE.CRM_CUST_INFO
-    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/cust_info.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_crm/cust_info.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: CRM_CUST_INFO loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -68,7 +102,9 @@ begin
     truncate table DATA_WAREHOUSE.BRONZE.CRM_PRD_INFO;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.CRM_PRD_INFO');
     copy into DATA_WAREHOUSE.BRONZE.CRM_PRD_INFO
-    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/prd_info.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_crm/prd_info.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: CRM_PRD_INFO loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -79,7 +115,9 @@ begin
     truncate table DATA_WAREHOUSE.BRONZE.CRM_SALES_DETAILS;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.CRM_SALES_DETAILS');
     copy into DATA_WAREHOUSE.BRONZE.CRM_SALES_DETAILS
-    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_crm/sales_details.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_crm/sales_details.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: CRM_SALES_DETAILS loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -93,7 +131,9 @@ begin
     truncate table DATA_WAREHOUSE.BRONZE.ERP_CUST_AZ12;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.ERP_CUST_AZ12');
     copy into DATA_WAREHOUSE.BRONZE.ERP_CUST_AZ12
-    from @"DATA_WAREHOUSE"."STAGING"."STG_CSV_FILES"/datasets/source_erp/CUST_AZ12.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_erp/CUST_AZ12.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: ERP_CUST_AZ12 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -104,7 +144,9 @@ begin
     TRUNCATE TABLE DATA_WAREHOUSE.BRONZE.ERP_LOC_A101;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.ERP_LOC_A101');
     COPY INTO DATA_WAREHOUSE.BRONZE.ERP_LOC_A101
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_erp/LOC_A101.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_erp/LOC_A101.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: ERP_LOC_A101 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -115,7 +157,9 @@ begin
     TRUNCATE TABLE DATA_WAREHOUSE.BRONZE.ERP_PX_CAT_G1V2;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.ERP_PX_CAT_G1V2');
     COPY INTO DATA_WAREHOUSE.BRONZE.ERP_PX_CAT_G1V2
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_erp/PX_CAT_G1V2.csv;
+    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    FILES = ('datasets/source_erp/PX_CAT_G1V2.csv')
+    ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: ERP_PX_CAT_G1V2 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
