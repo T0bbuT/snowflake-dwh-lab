@@ -8,7 +8,7 @@
 
 - Snowflake CLI（`snow`）をインストールし、[キーペア認証ガイド](setup-keypair-auth.md)に従って接続を設定します。
 - `COMPUTE_WH` が存在し、接続ユーザーが利用できることを確認します。このリポジトリにはウェアハウス作成SQLはありません。
-- 通常の構築・ロードには `SYSADMIN`、Event Tableの作成とアカウント設定には `ACCOUNTADMIN` を使用します。
+- 通常の構築・ロード、Event Tableの作成・ログ確認には `SYSADMIN` を使用します。`init_event_table.sql` はアカウントのログ出力先設定時だけ `ACCOUNTADMIN` に切り替え、最後に `SYSADMIN` に戻ります。
 - コマンドはリポジトリのルートで実行し、`my_connection` を自分の接続名に置き換えます。各SQLに固定されたロール・ウェアハウスを変更する場合は、SQL内の `USE` 文も合わせてください。
 
 ```bash
@@ -96,11 +96,13 @@ Goldの品質チェックは各クエリが0件であることを確認します
 ## ログを確認する
 
 ```bash
-snow sql -c my_connection --role ACCOUNTADMIN --warehouse COMPUTE_WH \
+snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
   -f scripts/query_load_logs.sql
 ```
 
-[query_load_logs.sql](../scripts/query_load_logs.sql)はBronze / Silverのログとエラーログを表示します。Event Tableへの反映には数分のラグがある場合があります。現行のセットアップは `ACCOUNTADMIN` でEvent Tableを作成し、他ロールへの参照権限を付与していないため、ここでは作成時のロールで確認します。
+[query_load_logs.sql](../scripts/query_load_logs.sql)はBronze / Silverの最新100件ずつとエラーログの最新50件を、それぞれ古い順に表示します。Event Tableへの反映には数分のラグがある場合があります。Event Tableは `SYSADMIN` で作成し、同じロールで参照します。
+
+このロール分担は2026-09-13の実機検証後の変更であり、実機では未検証です。
 
 ## データ更新時
 

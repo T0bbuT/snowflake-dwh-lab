@@ -8,47 +8,59 @@
     - Event Table への書き込みには数分のラグがある場合がある
 ================================================================================
 */
--- ACCOUNTADMIN ロールで実行すること（既定では他ロールに読み取り権限がない）
-USE ROLE ACCOUNTADMIN;
+-- Event Tableを作成したSYSADMINロールで参照する
+USE ROLE SYSADMIN;
 
--- LOAD_BRONZE のログを時系列で表示
-SELECT
-    TIMESTAMP AS time,
-    RECORD['severity_text']::STRING AS severity,
-    VALUE::STRING AS message
-FROM
-    data_warehouse.staging.load_events
-WHERE
-    RESOURCE_ATTRIBUTES['snow.executable.name'] LIKE '%LOAD_BRONZE%'
-    AND RECORD_TYPE = 'LOG'
-ORDER BY
-    TIMESTAMP ASC
-LIMIT 100;
+-- LOAD_BRONZE の最新100件を取得し、古い順に表示
+SELECT *
+FROM (
+    SELECT
+        TIMESTAMP AS time,
+        RECORD['severity_text']::STRING AS severity,
+        VALUE::STRING AS message
+    FROM
+        data_warehouse.staging.load_events
+    WHERE
+        RESOURCE_ATTRIBUTES['snow.executable.name'] LIKE '%LOAD_BRONZE%'
+        AND RECORD_TYPE = 'LOG'
+    ORDER BY
+        TIMESTAMP DESC
+    LIMIT 100
+) AS recent_logs
+ORDER BY time ASC;
 
--- LOAD_SILVER のログを時系列で表示
-SELECT
-    TIMESTAMP AS time,
-    RECORD['severity_text']::STRING AS severity,
-    VALUE::STRING AS message
-FROM
-    data_warehouse.staging.load_events
-WHERE
-    RESOURCE_ATTRIBUTES['snow.executable.name'] LIKE '%LOAD_SILVER%'
-    AND RECORD_TYPE = 'LOG'
-ORDER BY
-    TIMESTAMP ASC
-LIMIT 100;
+-- LOAD_SILVER の最新100件を取得し、古い順に表示
+SELECT *
+FROM (
+    SELECT
+        TIMESTAMP AS time,
+        RECORD['severity_text']::STRING AS severity,
+        VALUE::STRING AS message
+    FROM
+        data_warehouse.staging.load_events
+    WHERE
+        RESOURCE_ATTRIBUTES['snow.executable.name'] LIKE '%LOAD_SILVER%'
+        AND RECORD_TYPE = 'LOG'
+    ORDER BY
+        TIMESTAMP DESC
+    LIMIT 100
+) AS recent_logs
+ORDER BY time ASC;
 
--- エラーログのみ抽出
-SELECT
-    TIMESTAMP AS time,
-    RESOURCE_ATTRIBUTES['snow.executable.name']::STRING AS procedure_name,
-    VALUE::STRING AS message
-FROM
-    data_warehouse.staging.load_events
-WHERE
-    RECORD_TYPE = 'LOG'
-    AND RECORD['severity_text']::STRING = 'ERROR'
-ORDER BY
-    TIMESTAMP ASC
-LIMIT 50;
+-- エラーログの最新50件を取得し、古い順に表示
+SELECT *
+FROM (
+    SELECT
+        TIMESTAMP AS time,
+        RESOURCE_ATTRIBUTES['snow.executable.name']::STRING AS procedure_name,
+        VALUE::STRING AS message
+    FROM
+        data_warehouse.staging.load_events
+    WHERE
+        RECORD_TYPE = 'LOG'
+        AND RECORD['severity_text']::STRING = 'ERROR'
+    ORDER BY
+        TIMESTAMP DESC
+    LIMIT 50
+) AS recent_logs
+ORDER BY time ASC;

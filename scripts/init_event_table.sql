@@ -7,20 +7,22 @@ Event Table セットアップ
     アカウントのアクティブ Event Table として設定する。
 
 前提:
-    - ACCOUNTADMIN ロールが必要
-    - 一度だけ実行すればよい
+    - SYSADMIN / ACCOUNTADMIN ロールが必要
+    - DB・STAGINGスキーマと両ロードプロシージャをSYSADMINで作成済みであること
+    - 初回構築時、およびDB・プロシージャの再作成後に実行する
 
 使用例:
     このスクリプトを上から順に実行する
 ================================================================================
 */
 
-use role accountadmin;
+use role sysadmin;
 
 -- Event Table の作成
 create event table if not exists data_warehouse.staging.load_events;
 
 -- アカウントのアクティブ Event Table として設定
+use role accountadmin;
 alter account set event_table = 'DATA_WAREHOUSE.STAGING.LOAD_EVENTS';
 
 -- プロシージャのログレベルをINFOに設定
