@@ -1,81 +1,86 @@
-# **Naming Conventions**
+# **命名規則**
 
-This document outlines the naming conventions used for schemas, tables, views, columns, and other objects in the data warehouse.
+このドキュメントでは、データウェアハウスで使用するスキーマ、テーブル、ビュー、カラム、およびその他のオブジェクトの命名規則を定義します。
 
-## **Table of Contents**
+## **目次**
 
-1. [General Principles](#general-principles)
-2. [Table Naming Conventions](#table-naming-conventions)
-   - [Bronze Rules](#bronze-rules)
-   - [Silver Rules](#silver-rules)
-   - [Gold Rules](#gold-rules)
-3. [Column Naming Conventions](#column-naming-conventions)
-   - [Surrogate Keys](#surrogate-keys)
-   - [Technical Columns](#technical-columns)
-4. [Stored Procedure](#stored-procedure-naming-conventions)
+1. [基本原則](#基本原則)
+2. [テーブルの命名規則](#テーブルの命名規則)
+   - [Bronzeの規則](#bronzeの規則)
+   - [Silverの規則](#silverの規則)
+   - [Goldの規則](#goldの規則)
+3. [カラムの命名規則](#カラムの命名規則)
+   - [サロゲートキー](#サロゲートキー)
+   - [システム管理カラム](#システム管理カラム)
+4. [ストアドプロシージャ](#ストアドプロシージャ)
+
 ---
 
-## **General Principles**
+## **基本原則**
 
-- **Naming Conventions**: Use snake_case, with lowercase letters and underscores (`_`) to separate words.
-- **Language**: Use English for all names.
-- **Avoid Reserved Words**: Do not use SQL reserved words as object names.
+- **命名形式**: 小文字とアンダースコア（`_`）で単語を区切るスネークケースを使用します。
+- **言語**: すべての名前に英語を使用します。
+- **予約語の回避**: SQLの予約語をオブジェクト名に使用しません。
 
-## **Table Naming Conventions**
+## **テーブルの命名規則**
 
-### **Bronze Rules**
-- All names must start with the source system name, and table names must match their original names without renaming.
-- **`<sourcesystem>_<entity>`**  
-  - `<sourcesystem>`: Name of the source system (e.g., `crm`, `erp`).  
-  - `<entity>`: Exact table name from the source system.  
-  - Example: `crm_customer_info` → Customer information from the CRM system.
+### **Bronzeの規則**
 
-### **Silver Rules**
-- All names must start with the source system name, and table names must match their original names without renaming.
-- **`<sourcesystem>_<entity>`**  
-  - `<sourcesystem>`: Name of the source system (e.g., `crm`, `erp`).  
-  - `<entity>`: Exact table name from the source system.  
-  - Example: `crm_customer_info` → Customer information from the CRM system.
+- すべての名前はソースシステム名から始め、テーブル名は元の名前を変更せずに使用します。
+- **`<sourcesystem>_<entity>`**
+  - `<sourcesystem>`: ソースシステム名（例: `crm`、`erp`）。
+  - `<entity>`: ソースシステムにおける正確なテーブル名。
+  - 例: `crm_customer_info` → CRMシステムの顧客情報。
 
-### **Gold Rules**
-- All names must use meaningful, business-aligned names for tables, starting with the category prefix.
-- **`<category>_<entity>`**  
-  - `<category>`: Describes the role of the table, such as `dim` (dimension) or `fact` (fact table).  
-  - `<entity>`: Descriptive name of the table, aligned with the business domain (e.g., `customers`, `products`, `sales`).  
-  - Examples:
-    - `dim_customers` → Dimension table for customer data.  
-    - `fact_sales` → Fact table containing sales transactions.  
+### **Silverの規則**
 
-#### **Glossary of Category Patterns**
+- すべての名前はソースシステム名から始め、テーブル名は元の名前を変更せずに使用します。
+- **`<sourcesystem>_<entity>`**
+  - `<sourcesystem>`: ソースシステム名（例: `crm`、`erp`）。
+  - `<entity>`: ソースシステムにおける正確なテーブル名。
+  - 例: `crm_customer_info` → CRMシステムの顧客情報。
 
-| Pattern     | Meaning                           | Example(s)                              |
-|-------------|-----------------------------------|-----------------------------------------|
-| `dim_`      | Dimension table                  | `dim_customer`, `dim_product`           |
-| `fact_`     | Fact table                       | `fact_sales`                            |
-| `agg_`      | Aggregated table                 | `agg_customers`, `agg_sales_monthly`    |
+### **Goldの規則**
 
-## **Column Naming Conventions**
+- すべてのテーブルには、カテゴリを表す接頭辞から始まる、業務上の意味が明確な名前を使用します。
+- **`<category>_<entity>`**
+  - `<category>`: `dim`（ディメンション）や`fact`（ファクトテーブル）など、テーブルの役割を表します。
+  - `<entity>`: 業務領域に沿った、テーブルの内容を表す名前（例: `customers`、`products`、`sales`）。
+  - 例:
+    - `dim_customers` → 顧客データのディメンションテーブル。
+    - `fact_sales` → 売上取引を格納するファクトテーブル。
 
-### **Surrogate Keys**  
-- All primary keys in dimension tables must use the suffix `_key`.
-- **`<table_name>_key`**  
-  - `<table_name>`: Refers to the name of the table or entity the key belongs to.  
-  - `_key`: A suffix indicating that this column is a surrogate key.  
-  - Example: `customer_key` → Surrogate key in the `dim_customers` table.
-  
-### **Technical Columns**
-- All technical columns must start with the prefix `dwh_`, followed by a descriptive name indicating the column's purpose.
-- **`dwh_<column_name>`**  
-  - `dwh`: Prefix exclusively for system-generated metadata.  
-  - `<column_name>`: Descriptive name indicating the column's purpose.  
-  - Example: `dwh_load_date` → System-generated column used to store the date when the record was loaded.
- 
-## **Stored Procedure**
+#### **カテゴリパターン用語集**
 
-- All stored procedures used for loading data must follow the naming pattern:
-- **`proc_load_<layer>`**.
-  
-  - `<layer>`: Represents the layer being loaded, such as `bronze`, `silver`, or `gold`.
-  - Example: 
-    - `load_bronze` → Stored procedure for loading data into the Bronze layer.
-    - `load_silver` → Stored procedure for loading data into the Silver layer.
+| パターン | 意味 | 例 |
+|---|---|---|
+| `dim_` | ディメンションテーブル | `dim_customer`、`dim_product` |
+| `fact_` | ファクトテーブル | `fact_sales` |
+| `agg_` | 集計テーブル | `agg_customers`、`agg_sales_monthly` |
+
+## **カラムの命名規則**
+
+### **サロゲートキー**
+
+- ディメンションテーブルのすべての主キーには、接尾辞 `_key` を使用します。
+- **`<table_name>_key`**
+  - `<table_name>`: キーが属するテーブルまたはエンティティの名前。
+  - `_key`: このカラムがサロゲートキーであることを表す接尾辞。
+  - 例: `customer_key` → `dim_customers` テーブルのサロゲートキー。
+
+### **システム管理カラム**
+
+- DWHが生成・管理するメタデータ用のカラムは接頭辞 `dwh_` から始め、その後にカラムの目的を表す名前を続けます。
+- **`dwh_<column_name>`**
+  - `dwh`: システムが生成するメタデータ専用の接頭辞。
+  - `<column_name>`: カラムの目的を表す名前。
+  - 例: `dwh_load_date` → レコードがロードされた日付を格納する、システム生成カラム。
+
+## **ストアドプロシージャ**
+
+- データのロードに使用するすべてのストアドプロシージャは、次の命名パターンに従います。
+- **`proc_load_<layer>`**
+  - `<layer>`: ロード対象のレイヤを表します（例: `bronze`、`silver`、`gold`）。
+  - 例:
+    - `load_bronze` → Bronzeレイヤへデータをロードするストアドプロシージャ。
+    - `load_silver` → Silverレイヤへデータをロードするストアドプロシージャ。
