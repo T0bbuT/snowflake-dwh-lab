@@ -18,11 +18,11 @@
 
 ログ:
     実行中のログはEvent Tableに記録される。
-    確認方法は scripts/query_load_logs.sql を参照。
+    確認方法は scripts/logging/query_load_logs.sql を参照。
 
 前提:
-    - scripts/setup/ensure_event_table.sql と configure_event_target.sql でログ保存先・出力先を設定済みであること
-    - scripts/configure_logging.sql をロード呼び出し前に実行しておくこと
+    - scripts/logging/ensure_event_table.sql と configure_event_target.sql でログ保存先・出力先を設定済みであること
+    - scripts/logging/configure_logging.sql をロード呼び出し前に実行しておくこと
 
 使用例:
     call data_warehouse.silver.load_silver();

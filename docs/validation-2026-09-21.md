@@ -6,8 +6,8 @@ Snowflake CLI 3.26.0で専用DBを作成し、変更後の `LOAD_BRONZE()` の�
 
 - 専用DB `DATA_WAREHOUSE_PREFLIGHT_20260921_075949` を使用し、SQL内の完全修飾名とログ出力先もこのDBに置き換えました。既存の `DATA_WAREHOUSE` は変更していません。
 - `setup/rebuild.sql` の `!source` をCLI 3.26.0のファイル読み込み処理で展開し、そのSQLを `snow sql -f` で実行しました。検証DBは先に `CREATE DATABASE` で新規作成し、`CREATE OR REPLACE DATABASE` は実行していません。既存DBの置き換え動作は検証対象外です。
-- Event Tableは `setup/ensure_event_table.sql` によりSYSADMINで作成しました。アカウント全体への影響を避けるため、出力先設定だけはACCOUNTADMINによる `ALTER DATABASE ... SET EVENT_TABLE` に変更しました。`setup/configure_event_target.sql` の `ALTER ACCOUNT` は実行していません。
-- Bronze / Silverのプロシージャ、`configure_logging.sql`、Goldビュー、既存の品質チェックSQLと `query_load_logs.sql` を使用しました。
+- Event Tableは `logging/ensure_event_table.sql` によりSYSADMINで作成しました。アカウント全体への影響を避けるため、出力先設定だけはACCOUNTADMINによる `ALTER DATABASE ... SET EVENT_TABLE` に変更しました。`logging/configure_event_target.sql` の `ALTER ACCOUNT` は実行していません。
+- Bronze / Silverのプロシージャ、`logging/configure_logging.sql`、Goldビュー、既存の品質チェックSQLと `logging/query_load_logs.sql` を使用しました。
 - CSVはリポジトリの6ファイルを使用しました。アップロードは `snow sql` 経由の `PUT ... AUTO_COMPRESS=FALSE OVERWRITE=TRUE` で実施し、`snow stage copy` は今回の対象外です。PUT後に別途REFRESHせず、プロシージャ内の一覧更新で検出できることを確認しました。
 - 誤ったファイル名を検証するため、元CSVを変更せず、検証ステージに `datasets/source_erp/PX_CAT_G1V2.csv.bak` を追加しました。
 

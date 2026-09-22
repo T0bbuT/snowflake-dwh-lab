@@ -8,7 +8,7 @@ CSV不足チェック・通常ロード・再ロードの結果は[2026-09-21の
 
 - Snowflake CLI（`snow`）をインストールし、[キーペア認証ガイド](setup-keypair-auth.md)に従って接続を設定します。
 - `COMPUTE_WH` が存在し、接続ユーザーが利用できることを確認します。このリポジトリにはウェアハウス作成SQLはありません。
-- 通常の構築・ロード、Event Tableの作成・ログ確認には `SYSADMIN` を使用します。`setup/configure_event_target.sql` だけがアカウントのログ出力先設定に `ACCOUNTADMIN` を使用し、最後に `SYSADMIN` に戻ります。
+- 通常の構築・ロード、Event Tableの作成・ログ確認には `SYSADMIN` を使用します。`logging/configure_event_target.sql` だけがアカウントのログ出力先設定に `ACCOUNTADMIN` を使用し、最後に `SYSADMIN` に戻ります。
 - コマンドはリポジトリのルートで実行し、`my_connection` を自分の接続名に置き換えます。各SQLに固定されたロール・ウェアハウスを変更する場合は、SQL内の `USE` 文も合わせてください。
 
 ```bash
@@ -24,11 +24,11 @@ SnowsightでGit上のSQLを編集・実行したい場合は、[Git Workspaceガ
 | 順序 | 実行するもの | 目的・完了の目安 |
 | --- | --- | --- |
 | 1 | [setup/rebuild.sql](../scripts/setup/rebuild.sql) | DB・4スキーマ・CSVステージ・Bronze / Silver各6テーブルを再作成 |
-| 2 | [setup/ensure_event_table.sql](../scripts/setup/ensure_event_table.sql) | ログ保存先を作成。既に存在する場合はログを保持 |
-| 3 | [setup/configure_event_target.sql](../scripts/setup/configure_event_target.sql) | アカウントのログ出力先を設定 |
+| 2 | [logging/ensure_event_table.sql](../scripts/logging/ensure_event_table.sql) | ログ保存先を作成。既に存在する場合はログを保持 |
+| 3 | [logging/configure_event_target.sql](../scripts/logging/configure_event_target.sql) | アカウントのログ出力先を設定 |
 | 4 | [proc_load_bronze.sql](../scripts/bronze/proc_load_bronze.sql) | `LOAD_BRONZE()` を定義（まだロードしない） |
 | 5 | [proc_load_silver.sql](../scripts/silver/proc_load_silver.sql) | `LOAD_SILVER()` を定義（まだロードしない） |
-| 6 | [configure_logging.sql](../scripts/configure_logging.sql) | 両プロシージャのログレベルをINFOに設定 |
+| 6 | [logging/configure_logging.sql](../scripts/logging/configure_logging.sql) | 両プロシージャのログレベルをINFOに設定 |
 | 7 | [CSVをステージへアップロードする](#7-csvをステージへアップロードする) | CRM・ERPのCSVをローカルからアップロード |
 | 8 | [アップロード結果を確認する](#8-アップロード結果を確認する) | ステージ内に必要な6ファイルがすべてあることを確認 |
 | 9 | [Bronzeへロードする](#9-bronzeへロードする) | CSV → Bronze。戻り値が `SUCCESS` であることを確認 |
@@ -45,11 +45,11 @@ SnowsightでGit上のSQLを編集・実行したい場合は、[Git Workspaceガ
 
 ```bash
 snow sql -c my_connection -f scripts/setup/rebuild.sql
-snow sql -c my_connection -f scripts/setup/ensure_event_table.sql
-snow sql -c my_connection -f scripts/setup/configure_event_target.sql
+snow sql -c my_connection -f scripts/logging/ensure_event_table.sql
+snow sql -c my_connection -f scripts/logging/configure_event_target.sql
 snow sql -c my_connection -f scripts/bronze/proc_load_bronze.sql
 snow sql -c my_connection -f scripts/silver/proc_load_silver.sql
-snow sql -c my_connection -f scripts/configure_logging.sql
+snow sql -c my_connection -f scripts/logging/configure_logging.sql
 ```
 
 `rebuild.sql` はSnowflake CLIの `!source` で既存のBronze / SilverのDDLを読み込みます。参照パスはリポジトリルート基準です。CLI専用のコマンドを含むため、Snowsightでこのファイルを直接実行することはできません。[Snowflake CLIのファイル読み込み仕様](https://docs.snowflake.com/en/developer-guide/snowflake-cli/sql/execute-sql#execute-sql-in-local-files-or-urls)
@@ -161,10 +161,10 @@ Goldの品質チェックは各クエリが0件であることを確認します
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
-  -f scripts/query_load_logs.sql
+  -f scripts/logging/query_load_logs.sql
 ```
 
-[query_load_logs.sql](../scripts/query_load_logs.sql)はBronze / Silverの最新100件ずつとエラーログの最新50件を、それぞれ古い順に表示します。Event Tableへの反映には数分のラグがある場合があります。Event Tableは `SYSADMIN` で作成し、同じロールで参照します。
+[query_load_logs.sql](../scripts/logging/query_load_logs.sql)はBronze / Silverの最新100件ずつとエラーログの最新50件を、それぞれ古い順に表示します。Event Tableへの反映には数分のラグがある場合があります。Event Tableは `SYSADMIN` で作成し、同じロールで参照します。
 
 ## データ更新時
 
@@ -183,10 +183,10 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 
 | 変更・状況 | 実行するもの |
 | --- | --- |
-| Bronze / Silverのプロシージャだけ変更 | 該当する `proc_load_*.sql` → `configure_logging.sql` → 対象レイヤから下流のロード・品質確認 |
-| ログレベルだけ変更 | `configure_logging.sql` の値を変更して実行 |
+| Bronze / Silverのプロシージャだけ変更 | 該当する `proc_load_*.sql` → `logging/configure_logging.sql` → 対象レイヤから下流のロード・品質確認 |
+| ログレベルだけ変更 | `logging/configure_logging.sql` の値を変更して実行 |
 | Goldのビュー定義だけ変更 | `ddl_gold.sql` → Gold品質チェック |
-| ログ出力先を設定し直す | 保存先が存在することを確認 → `setup/configure_event_target.sql` |
+| ログ出力先を設定し直す | 保存先が存在することを確認 → `logging/configure_event_target.sql` |
 | Bronze / Silverのテーブルを再作成 | 対象の `ddl_*.sql` → 対象レイヤから下流のロード・品質確認。列定義を変えた場合は関連プロシージャ・ビューも整合させる |
 | DB全体を作り直す | 初回構築・再構築の手順1〜13をすべて実行 |
 
@@ -194,9 +194,9 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 
 ```bash
 snow sql -c my_connection -f scripts/bronze/proc_load_bronze.sql
-snow sql -c my_connection -f scripts/configure_logging.sql
+snow sql -c my_connection -f scripts/logging/configure_logging.sql
 ```
 
 両プロシージャが存在する構築済み環境で実行します。その後、Bronze → Silverのロード、Silver / Goldの品質確認、ログ確認を行います。全件入れ替えの変更では再ロードも確認してください。
 
-`setup/ensure_event_table.sql` はログ保存先がなければ作成し、既存ログを保持します。`configure_logging.sql` も再実行時にログや業務データを削除しません。通常のCSV更新には、どちらも再実行不要です。
+`logging/ensure_event_table.sql` はログ保存先がなければ作成し、既存ログを保持します。`logging/configure_logging.sql` も再実行時にログや業務データを削除しません。通常のCSV更新には、どちらも再実行不要です。

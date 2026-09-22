@@ -1,76 +1,41 @@
-# データウェアハウス(DWH)構築 & データ分析
+# Snowflakeによるデータウェアハウス構築
 
-Snowflakeを用いて、販売データを対象としたモダンなデータウェアハウスを構築する個人プロジェクトです。  
-ERP・CRM由来のCSVデータを取り込み、データクレンジング・統合・モデリングを経て、分析に適したデータ基盤を整備することを目指しています。
+ERP・CRM由来の販売データをSnowflakeへ取り込み、クレンジング・統合を経て分析用データモデルを提供する個人プロジェクトです。
+ローカルのCSVを入力として、Bronze / Silver / Goldの3層でデータを管理します。
 
-現在はプロジェクト進行中で、データ基盤の整備と分析用レイヤの構築を進めています。
+## 実装していること
 
-## このプロジェクトで取り組んでいること
-
-- Snowflake上でのデータウェアハウス構築
-- CSVファイルの取り込みとステージング設計
-- Bronze / Silver / Gold レイヤを意識したデータモデリング
-- データ品質の確認と整形
-- SQLによる分析用データセットの整備
-- Git連携やコンテキスト設定を含むSnowflake運用の理解
+- Snowflake CLIを使用した、ローカルCSVから内部ステージへのアップロード
+- ストアドプロシージャによるBronze / Silverのロード
+- 重複排除、欠損・不整合の補正、コード値や日付形式の標準化
+- ERP・CRMデータを統合したディメンション／ファクトビューの提供
+- Event Tableへのロード状況・処理件数・エラーの記録
+- Silver / Goldを対象としたデータ品質チェック
+- 必須CSVが不足している場合に、既存のBronzeデータを保持してロードを中止する制御
 
 ## データアーキテクチャ
 
-データ基盤は、Bronze / Silver / Gold の3層で構成するメダリオンアーキテクチャを採用しています。
+データ基盤は、Bronze / Silver / Goldの3層で構成するメダリオンアーキテクチャを採用しています。
 
 ![データアーキテクチャ](docs/data_architecture.drawio.svg)
 
-- **Bronze**: ERP・CRM由来のCSVデータを、元の形のままSnowflakeに取り込むレイヤ
+- **Bronze**: ERP・CRM由来のCSVを、項目構造を保って取り込むレイヤ
 - **Silver**: データのクレンジング・標準化・統合を行うレイヤ
-- **Gold**: 分析やレポート向けに、スタースキーマのデータモデルを提供するレイヤ
+- **Gold**: 分析やレポート向けに、スタースキーマを構成するディメンション／ファクトビューを提供するレイヤ
 
-## プロジェクト概要
+Bronze / Silverのロードは `TRUNCATE` と `INSERT` による全件入れ替え方式です。現在は入力CSVの内容を最新状態として反映し、SCDなどの履歴管理は実装していません。
 
-### 目的
+## 対象データと分析用途
 
-Snowflakeを使ってデータウェアハウスを構築し、販売データを統合することで、分析レポートや情報に基づいた意思決定を可能にすることを目的としています。
+データソースは、CSVファイルとして提供されるERP・CRMの2系統です。Silverで各ソースをクレンジング・標準化し、Goldで顧客、商品、売上を結合可能な単一のデータモデルに整理します。
 
-### 対象データ
+Goldのデータモデルでは、主に次の分析用途を想定しています。
 
-- **データソース**: CSVファイルとして提供されるERP・CRMの2系統データ
-- **重視する点**: 分析前段階としてのデータ品質改善、不整合の修正、正規化
-- **統合方針**: 複数ソースを統合し、分析クエリに適した単一のデータモデルへ整理
-- **スコープ**: 現時点では最新データを対象とし、履歴管理は扱わない
+- 顧客属性ごとの購買傾向
+- 商品・カテゴリー別の販売実績
+- 期間別の販売トレンド
 
-### 分析テーマ
-
-SQLベースで、主に以下の観点から分析できる状態を目指しています。
-
-- **顧客行動**
-- **商品パフォーマンス**
-- **販売トレンド**
-
-## Snowflakeで進めている理由
-
-元の教材ではSQL Serverが利用されていますが、このリポジトリではSnowflakeを採用しています。  
-単なる置き換えではなく、Snowflakeの基本的な運用や設計を理解しながら進めることを意識しています。
-
-現時点では、以下のような内容を扱っています。
-
-- データベース、スキーマ、ウェアハウス、ロールの利用
-- ステージ作成とファイル取り込みの流れ
-- `USE ROLE`、`USE WAREHOUSE`、`USE DATABASE` などのコンテキスト設定
-- SnowflakeとGitの連携を意識した開発
-
-## 元教材との差分
-
-このプロジェクトは、Baraa Khatib Salkini氏のUdemy講座  
-「Building a Modern Data Warehouse - Data Engineering Bootcamp」を参考に進めています。
-
-参考元:
-https://www.udemy.com/course/building-a-modern-data-warehouse-data-engineering-bootcamp/
-
-ただし、本リポジトリでは以下の点で自分なりに置き換え・学習を進めています。
-
-- 実装環境をSQL ServerからSnowflakeへ変更
-- Snowflake向けのデータベース/スキーマ構成で構築
-- Snowflake特有のステージやコンテキスト管理を含めて実装
-- 学習記録ではなく、再現可能なデータ基盤プロジェクトとして整理
+Goldの各ビューの定義は[データカタログ](docs/data_catalog.md)を参照してください。
 
 ## セットアップ手順
 
@@ -82,40 +47,28 @@ https://www.udemy.com/course/building-a-modern-data-warehouse-data-engineering-b
 ローカルの `datasets/` にあるCSVをSnowflake CLIで内部ステージへアップロードし、Bronzeテーブルへ取り込みます。
 実行コマンドは[セットアップガイドの手順7以降](docs/setup.md#7-csvをステージへアップロードする)、オプションやエラー時の説明は[CSVアップロードの補足](docs/load-local-csv.md)を参照してください。
 
-## リポジトリの構成
+## リポジトリ構成
+
+主要なディレクトリの役割は次のとおりです。個別の実行ファイルと実行順序は[セットアップガイド](docs/setup.md)にまとめています。
 
 ```text
 snowflake-dwh-lab/
-├── datasets/                          # 取り込み元のCSVデータ
-│   ├── source_crm/                    # CRMデータ（顧客・商品・販売）
-│   └── source_erp/                    # ERPデータ（顧客・地域・商品カテゴリ）
-├── docs/                              # 設計資料・セットアップ手順
-│   ├── data_architecture.drawio.svg   # データアーキテクチャ図
-│   ├── data_flow.drawio.svg           # データフロー図
-│   ├── data_integration.drawio.svg    # データ統合図
-│   ├── data_model.drawio.svg          # データモデル図
-│   ├── data_catalog.md                # データカタログ
-│   ├── naming_conventions.md          # 命名規則
-│   ├── setup.md                       # 初回構築・データ更新の実行順序
-│   ├── load-local-csv.md              # CSVアップロードのオプション・補足
-│   ├── setup-git-workspace.md         # SnowflakeとGitの連携手順
-│   └── setup-keypair-auth.md          # キーペア認証の設定手順
-├── scripts/                           # Snowflake向けのSQLスクリプト
-│   ├── bronze/                       # 生データのテーブル定義・取り込み
-│   ├── silver/                       # クレンジング・変換処理
-│   ├── gold/                         # 分析用データモデルの定義
-│   ├── setup/                        # 初回構築・再構築用
-│   │   ├── rebuild.sql               # DB・ステージ・テーブルの再作成
-│   │   ├── ensure_event_table.sql    # ログ保存先がなければ作成
-│   │   └── configure_event_target.sql # アカウントのログ出力先設定
-│   ├── configure_logging.sql         # プロシージャのログレベル設定
-│   └── query_load_logs.sql            # ロードログの確認
-├── tests/                             # データ品質チェック用SQL
-│   ├── quality_checks_silver.sql
-│   └── quality_checks_gold.sql
-├── README.md                          # プロジェクト概要
-└── LICENSE                            # ライセンス
+├── datasets/             # 取り込み元のERP・CRMデータ
+├── docs/                 # 設計資料・セットアップ手順・検証記録
+├── scripts/
+│   ├── setup/            # 初回構築・再構築
+│   ├── logging/          # Event Tableとロードログの設定・確認
+│   ├── bronze/           # Bronzeのテーブル定義・ロード処理
+│   ├── silver/           # Silverのテーブル定義・変換処理
+│   └── gold/             # Goldの分析用ビュー定義
+└── tests/                # Silver / Goldのデータ品質チェック
 ```
+
+## 参考・謝辞
+
+本プロジェクトは、Baraa Khatib Salkini氏の[SQL Data Warehouse Project](https://github.com/DataWithBaraa/sql-data-warehouse-project)を出発点としており、コード・データ・図の一部を利用しています。元プロジェクトのSQL Server向け構成を参考にしつつ、Snowflake向けのデータ取り込み、レイヤ設計、ロード処理、ログ、品質検証などを再設計・実装しています。
+
+関連講座: [SQL Data Warehouse Portfolio Project（YouTube）](https://www.youtube.com/playlist?list=PLNcg_FV9n7qaUWeyUkPfiVtMbKlrfMqA8)
 
 ## ライセンス
 
