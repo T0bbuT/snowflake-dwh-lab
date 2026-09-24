@@ -6,7 +6,7 @@ CSV不足チェック・通常ロード・再ロードの結果は[2026-09-21の
 
 ## 前提と接続準備
 
-- Snowflake CLI（`snow`）をインストールし、[キーペア認証ガイド](setup-keypair-auth.md)に従って接続を設定します。
+- Snowflake CLI（`snow`）をインストールし、[キーペア認証ガイド](setup-keypair-auth.md)に従って接続を設定します。`mise` を使用する場合は、リポジトリのルートで `mise install` を実行すると、`mise.toml` で指定した Snowflake CLI 3.26.0 が入ります。
 - `COMPUTE_WH` が存在し、接続ユーザーが利用できることを確認します。このリポジトリにはウェアハウス作成SQLはありません。
 - 通常の構築・ロード、Event Tableの作成・ログ確認には `SYSADMIN` を使用します。`logging/configure_event_target.sql` だけがアカウントのログ出力先設定に `ACCOUNTADMIN` を使用し、最後に `SYSADMIN` に戻ります。
 - コマンドはリポジトリのルートで実行し、`my_connection` を自分の接続名に置き換えます。各SQLに固定されたロール・ウェアハウスを変更する場合は、SQL内の `USE` 文も合わせてください。
