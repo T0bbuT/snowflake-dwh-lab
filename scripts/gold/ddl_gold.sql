@@ -55,4 +55,8 @@ SELECT
 FROM
     data_warehouse.silver.crm_sales_details AS sd
     LEFT JOIN data_warehouse.gold.dim_products AS pr ON sd.sls_prd_key = pr.product_number
-    LEFT JOIN data_warehouse.gold.dim_customers AS cu ON sd.sls_cust_id = cu.customer_id;
+    LEFT JOIN data_warehouse.gold.dim_customers AS cu ON sd.sls_cust_id = cu.customer_id
+WHERE
+    -- 数量・単価が補えず売上がNULLの行は、分析に使えないためGoldから除外する(Silverには保持)
+    -- 売上は数量×単価なので、この条件で数量・単価のNULLもまとめて除外される
+    sd.sls_sales IS NOT NULL;

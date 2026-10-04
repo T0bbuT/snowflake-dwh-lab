@@ -46,6 +46,7 @@ Gold層は、分析やレポートに活用しやすいよう整理・構造化�
 
 ### 3. **gold.fact_sales**
 - **目的:** 分析用の売上取引データを格納します。
+- **除外条件:** 数量または単価が欠損・不正で売上を算出できない明細は含みません。これらはSilverの `crm_sales_details` に保持されます（[ADR-0006](adr/0006-recompute-sales-from-quantity-and-price.md)）。
 - **カラム:**
 
 | カラム名      | データ型     | 説明                                                                     |
