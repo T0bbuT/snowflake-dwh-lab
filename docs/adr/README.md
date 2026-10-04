@@ -24,6 +24,7 @@
 | [0004: ロードログをEvent Tableへ記録する](0004-use-event-table-for-load-logging.md) | 採用 | 固有 | Snowflake標準のログ機構で実行履歴とエラーを参照可能にする |
 | [0005: 必須CSVをロード開始前に検証する](0005-validate-required-files-before-loading.md) | 採用 | 固有 | ファイル不足時は既存Bronzeデータを変更せず終了する |
 | [0006: 売上を数量と単価から再計算する](0006-recompute-sales-from-quantity-and-price.md) | 採用 | 固有 | ソースの売上は使わず、正規化した数量×単価で売上を求める |
+| [0007: 品質チェックを合否付きの一覧で出力する](0007-report-quality-checks-as-status-table.md) | 採用 | 固有 | チェックごとに重要度・件数・合否・例を1行で返し、`FAIL` の有無で判断する |
 
 ## 運用ルール
 
