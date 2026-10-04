@@ -87,7 +87,8 @@ begin
                 *,
                 ROW_NUMBER() OVER (
                     PARTITION BY cst_id
-                    ORDER BY cst_create_date DESC
+                    -- SnowflakeはDESCでNULLを先頭に並べるため、作成日のない行を最新として選ばないよう明示する
+                    ORDER BY cst_create_date DESC NULLS LAST
                 ) AS flag_last
             FROM
                 data_warehouse.bronze.crm_cust_info
