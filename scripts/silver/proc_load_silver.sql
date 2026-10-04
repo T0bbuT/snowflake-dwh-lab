@@ -96,21 +96,15 @@ begin
         END AS cst_gndr,
         cst_create_date
     FROM
-        (
-            SELECT
-                *,
-                ROW_NUMBER() OVER (
-                    PARTITION BY cst_id
-                    -- SnowflakeはDESCでNULLを先頭に並べるため、作成日のない行を最新として選ばないよう明示する
-                    ORDER BY cst_create_date DESC NULLS LAST
-                ) AS flag_last
-            FROM
-                data_warehouse.bronze.crm_cust_info
-            WHERE
-                cst_id IS NOT NULL
-        )
+        data_warehouse.bronze.crm_cust_info
     WHERE
-        flag_last = 1;
+        cst_id IS NOT NULL
+    QUALIFY
+        ROW_NUMBER() OVER (
+            PARTITION BY cst_id
+            -- SnowflakeはDESCでNULLを先頭に並べるため、作成日のない行を最新として選ばないよう明示する
+            ORDER BY cst_create_date DESC NULLS LAST
+        ) = 1;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: CRM_CUST_INFO loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -241,14 +235,8 @@ begin
     INSERT INTO
         data_warehouse.silver.erp_cust_az12 (cid, bdate, gen)
     SELECT
-        CASE
-            WHEN cid LIKE 'NASAW%' THEN SUBSTR(cid, 4, LEN(cid))
-            ELSE cid
-        END AS cid,
-        CASE
-            WHEN bdate > CURRENT_DATE() THEN NULL
-            ELSE bdate
-        END AS bdate,
+        IFF(cid LIKE 'NASAW%', SUBSTR(cid, 4, LEN(cid)), cid) AS cid,
+        IFF(bdate > CURRENT_DATE(), NULL, bdate) AS bdate,
         CASE
             WHEN UPPER(TRIM(gen)) IN ('M', 'MALE') THEN 'Male'
             WHEN UPPER(TRIM(gen)) IN ('F', 'FEMALE') THEN 'Female'
