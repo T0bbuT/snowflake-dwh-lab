@@ -12,12 +12,19 @@
     - ロード前に、ブロンズ層のテーブルをtruncateする
     - `copy into`により、csvデータをブロンズ層のテーブルにロードする
 
+    csvの値は変換せず、そのまま取り込む(クレンジングはLOAD_SILVER()で行う)。
+    ヘッダー行の読み飛ばしや引用符の扱いは、ステージに定義したファイルフォーマットに従う
+    (scripts/setup/rebuild.sql を参照)。
+
+    不足チェック後の処理は各テーブルで別々の文として実行されるため、途中で失敗すると
+    一部のテーブルだけが更新済み、または空の状態で終了する。
+
 引数:
     なし
 
 返り値:
     成功時: 'SUCCESS'
-    失敗時: エラーメッセージ
+    失敗時: 'ERROR: <エラーメッセージ>'
 
 ログ:
     実行中のログはEvent Tableに記録される。
@@ -79,6 +86,11 @@ begin
         SYSTEM$LOG_ERROR('LOAD_BRONZE: failed - ' || error_message);
         RETURN 'ERROR: ' || error_message;
     END IF;
+
+    -- 以降、各テーブルを「TRUNCATE → COPY INTO」で全件入れ替える。
+    -- TRUNCATEはテーブルのロード履歴(読み込み済みファイルの記録)も消去するため、
+    -- 前回と同じファイル名・内容のCSVでもCOPY INTOでスキップされずに再ロードされる。
+    -- ON_ERROR = 'ABORT_STATEMENT' により、1行でも読み込めない行があればそのCOPY全体を失敗させる。
 
     -- CRM Tables
     SYSTEM$LOG_INFO('LOAD_BRONZE: === Loading CRM Tables ===');
