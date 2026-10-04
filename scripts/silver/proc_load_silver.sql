@@ -11,7 +11,7 @@
     - テーブルごとの主な変換は次のとおり。詳細は各INSERT文の直前のコメントを参照
         crm_cust_info   : 顧客IDごとに最新の1行へ重複排除、氏名の空白除去、コード値の展開
         crm_prd_info    : 商品キーからカテゴリIDを分離、終了日を次バージョンの開始日から再計算
-        crm_sales_details: 整数の日付をDATEへ変換、売上・単価の欠損や不整合を補正
+        crm_sales_details: 整数の日付をDATEへ変換、数量・単価を正規化し売上を数量×単価で再計算
         erp_cust_az12   : 顧客IDの接頭辞を除去、未来の生年月日をNULL化、性別の表記統一
         erp_loc_a101    : 顧客IDのハイフンを除去、国コードを国名へ統一
         erp_px_cat_g1v2 : 変換なし
@@ -163,10 +163,11 @@ begin
 
     -- crm_sales_details
     -- 日付はソースで整数(YYYYMMDD)のため、DATEへ変換する。0以下や8桁でない値はNULLとする。
-    -- 売上・単価は「売上 = 数量 × 単価」が成り立つよう補正する。
-    --   売上: NULL・0以下・数量×単価と不一致の場合は、数量×|単価| で置き換える(単価を正とみなす)
-    --   単価: NULL・0以下の場合は、売上÷数量で補う。割り切れない場合はINT列への格納時に
-    --         四捨五入される(SQL Serverの整数除算は切り捨てで、元教材と結果が異なり得る)
+    -- 数量・単価を正規化し、売上はソースの値を使わず「数量 × 単価」で計算し直す。
+    --   数量: 正の値はそのまま、0・負・NULLはNULL
+    --   単価: 正の値はそのまま、負の値は符号の誤りとみなし絶対値、0・NULLはNULL
+    --   売上: 正規化後の数量 × 単価。どちらかがNULLなら売上もNULL
+    -- 方針の詳細は docs/adr/0006-recompute-sales-from-quantity-and-price.md を参照。
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.CRM_SALES_DETAILS');
     TRUNCATE TABLE data_warehouse.silver.crm_sales_details;
@@ -202,18 +203,9 @@ begin
             OR LEN(sls_due_dt) != 8 THEN NULL
             ELSE TO_DATE(sls_due_dt::VARCHAR, 'YYYYMMDD')
         END AS sls_due_dt,
-        CASE
-            WHEN sls_sales IS NULL
-            OR sls_sales <= 0
-            OR sls_sales != sls_quantity * ABS(sls_price) THEN sls_quantity * ABS(sls_price)
-            ELSE sls_sales
-        END AS sls_sales,
-        sls_quantity,
-        CASE
-            WHEN sls_price IS NULL
-            OR sls_price <= 0 THEN sls_sales / NULLIF(sls_quantity, 0)
-            ELSE sls_price
-        END AS sls_price
+        IFF(sls_quantity > 0, sls_quantity, NULL) * ABS(NULLIF(sls_price, 0)) AS sls_sales,
+        IFF(sls_quantity > 0, sls_quantity, NULL) AS sls_quantity,
+        ABS(NULLIF(sls_price, 0)) AS sls_price
     FROM
         data_warehouse.bronze.crm_sales_details;
     loaded_rows := SQLROWCOUNT;

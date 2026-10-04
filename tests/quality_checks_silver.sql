@@ -126,8 +126,8 @@ WHERE
     sls_order_dt > sls_ship_dt
     OR sls_order_dt > sls_due_dt;
 
--- データ整合性チェック: 売上 = 数量 * 価格
--- 期待: 結果なし
+-- データ整合性チェック: 売上 = 数量 * 価格、かつ値がすべて正
+-- 期待: 結果なし（LOAD_SILVERで売上を数量×単価から再計算するため）
 SELECT DISTINCT
     sls_sales,
     sls_quantity,
@@ -136,9 +136,6 @@ FROM
     silver.crm_sales_details
 WHERE
     sls_sales != sls_quantity * sls_price
-    OR sls_sales IS NULL
-    OR sls_quantity IS NULL
-    OR sls_price IS NULL
     OR sls_sales <= 0
     OR sls_quantity <= 0
     OR sls_price <= 0
@@ -146,6 +143,26 @@ ORDER BY
     sls_sales,
     sls_quantity,
     sls_price;
+
+-- 売上・数量・単価が補えずNULLになった行の確認対象を抽出
+-- ソースの数量・単価が欠損または不正な行は、LOAD_SILVERでNULLとする仕様のため、
+-- 行が返ること自体は不具合ではない。件数と元の値を確認する。
+-- 方針は docs/adr/0006-recompute-sales-from-quantity-and-price.md を参照。
+SELECT
+    sls_ord_num,
+    sls_prd_key,
+    sls_sales,
+    sls_quantity,
+    sls_price
+FROM
+    silver.crm_sales_details
+WHERE
+    sls_sales IS NULL
+    OR sls_quantity IS NULL
+    OR sls_price IS NULL
+ORDER BY
+    sls_ord_num,
+    sls_prd_key;
 
 -- ====================================================================
 -- 'silver.erp_cust_az12' のチェック
