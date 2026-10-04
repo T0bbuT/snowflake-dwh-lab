@@ -9,10 +9,9 @@ SELECT
     la.cntry AS country,
     ci.cst_marital_status AS marital_status,
     -- gender: crm_cust_infoとerp_cust_az12の両方に含まれる情報を融合
-    CASE
-        WHEN ci.cst_gndr != 'n/a' THEN ci.cst_gndr -- crmが使用不可でない限り、crm側の情報を優先して使用する
-        ELSE COALESCE(ca.gen, 'n/a') -- 現状ca.genにNULLは紛れていないが、left joinしている都合上今後混ざるかもしれない。そのためcoalesceを噛ませている
-    END AS gender,
+    -- crmが使用不可('n/a')でない限り、crm側の情報を優先して使用する。
+    -- 現状ca.genにNULLは紛れていないが、left joinしている都合上今後混ざるかもしれない。そのためcoalesceを噛ませている
+    IFF(ci.cst_gndr != 'n/a', ci.cst_gndr, COALESCE(ca.gen, 'n/a')) AS gender,
     ca.bdate AS birthdate,
     ci.cst_create_date AS create_date,
 FROM
