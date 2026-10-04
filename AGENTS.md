@@ -17,6 +17,7 @@
 - 設計判断とトレードオフ: [docs/adr/README.md](docs/adr/README.md)
 - 実機検証の結果・範囲・確認事項: [docs/validation-2026-09-13.md](docs/validation-2026-09-13.md)
 - CSV不足時のデータ保持・通常ロード・再ロードの実機検証: [docs/validation-2026-09-21.md](docs/validation-2026-09-21.md)
+- 顧客の重複排除（NULLの並び順）とGold列名の実機検証: [docs/validation-2026-10-04.md](docs/validation-2026-10-04.md)
 
 ## Snowflakeでの実機検証
 

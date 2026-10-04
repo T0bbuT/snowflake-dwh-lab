@@ -37,7 +37,7 @@ Gold層は、分析やレポートに活用しやすいよう整理・構造化�
 | category_id          | VARCHAR(50)  | 製品の上位分類に紐づく、製品カテゴリーの一意の識別子                       |
 | category             | VARCHAR(50)  | 関連製品をグループ化するための大分類（例: `Bikes`、`Components`）          |
 | subcategory          | VARCHAR(50)  | 製品の種類など、カテゴリー内でのより詳細な分類                             |
-| maintenance_required | VARCHAR(50)  | 製品にメンテナンスが必要かどうかを示します（例: `Yes`、`No`）              |
+| maintenance          | VARCHAR(50)  | 製品にメンテナンスが必要かどうかを示します（例: `Yes`、`No`）              |
 | cost                 | NUMBER(38,0) | 通貨単位で表した製品の原価または基本価格                                   |
 | product_line         | VARCHAR(50)  | 製品が属する製品ラインまたはシリーズ（例: `Road`、`Mountain`）             |
 | start_date           | DATE         | 製品の販売または利用が開始された日付                                       |
