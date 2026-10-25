@@ -14,7 +14,7 @@ use warehouse compute_wh;
 
 -- 命名規則: <sourcesystem>_<entity>
 
-create or replace table data_warehouse.silver.crm_cust_info (
+create or replace table <% db %>.silver.crm_cust_info (
     cst_id int,
     cst_key varchar(50),
     cst_firstname varchar(50),
@@ -25,7 +25,7 @@ create or replace table data_warehouse.silver.crm_cust_info (
     dwh_create_date datetime default CURRENT_TIMESTAMP()
 );
 
-create or replace table data_warehouse.silver.crm_prd_info (
+create or replace table <% db %>.silver.crm_prd_info (
     prd_id int,
     cat_id varchar(50),
     prd_key varchar(50),
@@ -37,7 +37,7 @@ create or replace table data_warehouse.silver.crm_prd_info (
     dwh_create_date datetime default CURRENT_TIMESTAMP()
 );
 
-create or replace table data_warehouse.silver.crm_sales_details (
+create or replace table <% db %>.silver.crm_sales_details (
     sls_ord_num varchar(50),
     sls_prd_key varchar(50),
     sls_cust_id int,
@@ -50,20 +50,20 @@ create or replace table data_warehouse.silver.crm_sales_details (
     dwh_create_date datetime default CURRENT_TIMESTAMP()
 );
 
-create or replace table data_warehouse.silver.erp_CUST_AZ12 (
+create or replace table <% db %>.silver.erp_CUST_AZ12 (
     CID varchar(50),
     BDATE date,
     GEN  varchar(50),
     dwh_create_date datetime default CURRENT_TIMESTAMP()
 );
 
-create or replace table data_warehouse.silver.erp_LOC_A101 (
+create or replace table <% db %>.silver.erp_LOC_A101 (
     CID varchar(50),
     CNTRY varchar(50),
     dwh_create_date datetime default CURRENT_TIMESTAMP()
 );
 
-create or replace table data_warehouse.silver.erp_PX_CAT_G1V2 (
+create or replace table <% db %>.silver.erp_PX_CAT_G1V2 (
     ID varchar(50),
     CAT varchar(50),
     SUBCAT varchar(50),

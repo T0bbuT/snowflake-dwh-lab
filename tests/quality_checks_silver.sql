@@ -33,7 +33,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ') AS examples
     FROM (
         SELECT COALESCE(TO_VARCHAR(cst_id), 'NULL') AS example
-        FROM data_warehouse.silver.crm_cust_info
+        FROM <% db %>.silver.crm_cust_info
         GROUP BY cst_id
         HAVING COUNT(*) > 1 OR cst_id IS NULL
     )
@@ -44,7 +44,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT cst_key AS example
-        FROM data_warehouse.silver.crm_cust_info
+        FROM <% db %>.silver.crm_cust_info
         WHERE cst_key != TRIM(cst_key)
     )
 
@@ -54,7 +54,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT COALESCE(cst_marital_status, 'NULL') AS example
-        FROM data_warehouse.silver.crm_cust_info
+        FROM <% db %>.silver.crm_cust_info
         WHERE COALESCE(cst_marital_status, 'NULL') NOT IN ('Married', 'Single', 'n/a')
     )
 
@@ -67,7 +67,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT COALESCE(TO_VARCHAR(prd_id), 'NULL') AS example
-        FROM data_warehouse.silver.crm_prd_info
+        FROM <% db %>.silver.crm_prd_info
         GROUP BY prd_id
         HAVING COUNT(*) > 1 OR prd_id IS NULL
     )
@@ -78,7 +78,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT prd_nm AS example
-        FROM data_warehouse.silver.crm_prd_info
+        FROM <% db %>.silver.crm_prd_info
         WHERE prd_nm != TRIM(prd_nm)
     )
 
@@ -88,7 +88,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT TO_VARCHAR(prd_id) AS example
-        FROM data_warehouse.silver.crm_prd_info
+        FROM <% db %>.silver.crm_prd_info
         WHERE prd_cost < 0 OR prd_cost IS NULL
     )
 
@@ -98,7 +98,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT COALESCE(prd_line, 'NULL') AS example
-        FROM data_warehouse.silver.crm_prd_info
+        FROM <% db %>.silver.crm_prd_info
         WHERE COALESCE(prd_line, 'NULL') NOT IN ('Mountain', 'Road', 'Other Sales', 'Touring', 'n/a')
     )
 
@@ -108,7 +108,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT TO_VARCHAR(prd_id) AS example
-        FROM data_warehouse.silver.crm_prd_info
+        FROM <% db %>.silver.crm_prd_info
         WHERE prd_end_dt < prd_start_dt
     )
 
@@ -121,7 +121,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT sls_ord_num AS example
-        FROM data_warehouse.silver.crm_sales_details
+        FROM <% db %>.silver.crm_sales_details
         WHERE sls_due_dt IS NULL
             OR sls_due_dt > '2050-01-01'::DATE
             OR sls_due_dt < '1900-01-01'::DATE
@@ -133,7 +133,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT sls_ord_num AS example
-        FROM data_warehouse.silver.crm_sales_details
+        FROM <% db %>.silver.crm_sales_details
         WHERE sls_order_dt > sls_ship_dt
             OR sls_order_dt > sls_due_dt
     )
@@ -145,7 +145,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT sls_ord_num AS example
-        FROM data_warehouse.silver.crm_sales_details
+        FROM <% db %>.silver.crm_sales_details
         WHERE sls_sales != sls_quantity * sls_price
             OR sls_sales <= 0
             OR sls_quantity <= 0
@@ -160,7 +160,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT sls_ord_num AS example
-        FROM data_warehouse.silver.crm_sales_details
+        FROM <% db %>.silver.crm_sales_details
         WHERE sls_sales IS NULL
             OR sls_quantity IS NULL
             OR sls_price IS NULL
@@ -176,7 +176,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT cid AS example
-        FROM data_warehouse.silver.erp_cust_az12
+        FROM <% db %>.silver.erp_cust_az12
         WHERE bdate > CURRENT_DATE()
     )
 
@@ -188,7 +188,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT cid AS example
-        FROM data_warehouse.silver.erp_cust_az12
+        FROM <% db %>.silver.erp_cust_az12
         WHERE bdate < DATEADD(year, -120, CURRENT_DATE())
     )
 
@@ -198,7 +198,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT COALESCE(gen, 'NULL') AS example
-        FROM data_warehouse.silver.erp_cust_az12
+        FROM <% db %>.silver.erp_cust_az12
         WHERE COALESCE(gen, 'NULL') NOT IN ('Male', 'Female', 'n/a')
     )
 
@@ -213,7 +213,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT COALESCE(cntry, 'NULL') AS example
-        FROM data_warehouse.silver.erp_loc_a101
+        FROM <% db %>.silver.erp_loc_a101
         WHERE COALESCE(cntry, 'NULL') NOT IN (
             'Australia', 'Canada', 'France', 'Germany', 'United Kingdom', 'United States', 'n/a'
         )
@@ -228,7 +228,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT id AS example
-        FROM data_warehouse.silver.erp_px_cat_g1v2
+        FROM <% db %>.silver.erp_px_cat_g1v2
         WHERE cat != TRIM(cat)
             OR subcat != TRIM(subcat)
             OR maintenance != TRIM(maintenance)
@@ -240,7 +240,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT COALESCE(maintenance, 'NULL') AS example
-        FROM data_warehouse.silver.erp_px_cat_g1v2
+        FROM <% db %>.silver.erp_px_cat_g1v2
         WHERE COALESCE(maintenance, 'NULL') NOT IN ('Yes', 'No')
     )
 )

@@ -2,18 +2,30 @@
 
 このページを入口として、接続準備からGoldの品質確認まで順番に進めます。初回構築・全体の作り直しは下記の順序表を上から実行します。構築済み環境のCSV更新は「データ更新時」、SQLや設定の更新は「定義を変更したときの再実行範囲」へ進んでください。
 
-CSV不足チェック・通常ロード・再ロードの結果は[2026-09-21の実機検証記録](validation-2026-09-21.md)、以前の構築結果は[2026-09-13の実機検証記録](validation-2026-09-13.md)を参照してください。最新の検証は専用DBで実施し、既存DBの置き換えとアカウント全体のログ出力先変更は対象外です。実行方法の差分は検証記録に記載しています。
+CSV不足チェック・通常ロード・再ロードの結果は[2026-09-21の実機検証記録](validation-2026-09-21.md)、以前の構築結果は[2026-09-13の実機検証記録](validation-2026-09-13.md)を参照してください。これらの検証は、DB名の変数化（[ADR-0008](adr/0008-pass-database-name-at-runtime.md)）より前に、SQLを手作業で置き換えて実施しています。変更の検証は[検証DBで確認する](#検証dbで確認する)の手順で行います。
 
 ## 前提と接続準備
 
 - Snowflake CLI（`snow`）をインストールし、[キーペア認証ガイド](setup-keypair-auth.md)に従って接続を設定します。`mise` を使用する場合は、リポジトリのルートで `mise install` を実行すると、`mise.toml` で指定した Snowflake CLI 3.26.0 が入ります。
 - `COMPUTE_WH` が存在し、接続ユーザーが利用できることを確認します。このリポジトリにはウェアハウス作成SQLはありません。
-- 通常の構築・ロード、Event Tableの作成・ログ確認には `SYSADMIN` を使用します。`logging/configure_event_target.sql` だけがアカウントのログ出力先設定に `ACCOUNTADMIN` を使用し、最後に `SYSADMIN` に戻ります。
+- 通常の構築・ロード、Event Tableの作成・ログ確認には `SYSADMIN` を使用します。`logging/configure_event_target.sql` だけがDBのログ出力先設定に `ACCOUNTADMIN` を使用し、最後に `SYSADMIN` に戻ります。
 - コマンドはリポジトリのルートで実行し、`my_connection` を自分の接続名に置き換えます。各SQLに固定されたロール・ウェアハウスを変更する場合は、SQL内の `USE` 文も合わせてください。
 
 ```bash
 snow connection test -c my_connection
 ```
+
+### 対象DBを指定する
+
+SQL内のDB名はテンプレート変数 `<% db %>` で記述しています（[ADR-0008](adr/0008-pass-database-name-at-runtime.md)）。このページのコマンドは、シェル変数 `DB` に設定した対象DBに対して実行します。
+
+```bash
+DB=DATA_WAREHOUSE
+```
+
+`snow sql -f` には `-D db="$DB"` を付けます。省略すると `'db' is undefined` で停止し、SQLは実行されません。テンプレート変数を含むため、`scripts/` と `tests/` のSQLはSnowsightやVS Codeからそのままでは実行できません。
+
+`rebuild.sql` やロードプロシージャは対象DBを置き換え・`TRUNCATE` するため、実行前に `echo "$DB"` で対象を確認してください。
 
 SnowsightでGit上のSQLを編集・実行したい場合は、[Git Workspaceガイド](setup-git-workspace.md)も参照してください。Git連携は任意です。ローカルCSVのアップロードはターミナルから行います。
 
@@ -25,7 +37,7 @@ SnowsightでGit上のSQLを編集・実行したい場合は、[Git Workspaceガ
 | --- | --- | --- |
 | 1 | [setup/rebuild.sql](../scripts/setup/rebuild.sql) | DB・4スキーマ・CSVステージ・Bronze / Silver各6テーブルを再作成 |
 | 2 | [logging/ensure_event_table.sql](../scripts/logging/ensure_event_table.sql) | ログ保存先を作成。既に存在する場合はログを保持 |
-| 3 | [logging/configure_event_target.sql](../scripts/logging/configure_event_target.sql) | アカウントのログ出力先を設定 |
+| 3 | [logging/configure_event_target.sql](../scripts/logging/configure_event_target.sql) | 対象DBのログ出力先を、同じDBのEvent Tableに設定 |
 | 4 | [proc_load_bronze.sql](../scripts/bronze/proc_load_bronze.sql) | `LOAD_BRONZE()` を定義（まだロードしない） |
 | 5 | [proc_load_silver.sql](../scripts/silver/proc_load_silver.sql) | `LOAD_SILVER()` を定義（まだロードしない） |
 | 6 | [logging/configure_logging.sql](../scripts/logging/configure_logging.sql) | 両プロシージャのログレベルをINFOに設定 |
@@ -37,22 +49,22 @@ SnowsightでGit上のSQLを編集・実行したい場合は、[Git Workspaceガ
 | 12 | [Goldを作成する](#12-goldを作成する) | 顧客・商品・売上の3ビューを作成 |
 | 13 | [Goldの品質を確認する](#13-goldの品質を確認する) | Goldのキー重複・参照整合性を確認 |
 
-手順6は両プロシージャへの `ALTER PROCEDURE` を含むため、必ず手順4〜5の後に実行します。ログ保存先・出力先・ログレベルは、ロードを呼び出す前に設定します。手順3はアカウント全体のEvent Table設定を変更するため、既存のログ出力先がある環境ではその設定を確認してください。
+手順6は両プロシージャへの `ALTER PROCEDURE` を含むため、必ず手順4〜5の後に実行します。ログ保存先・出力先・ログレベルは、ロードを呼び出す前に設定します。手順3はDB単位の設定で、アカウント全体の出力先は変更しません。
 
 ### 1〜6. オブジェクトとログ設定を準備する
 
 以下は順序表に対応するコマンドです。リポジトリのルートから実行し、各コマンドの成功を確認してから次へ進みます。
 
 ```bash
-snow sql -c my_connection -f scripts/setup/rebuild.sql
-snow sql -c my_connection -f scripts/logging/ensure_event_table.sql
-snow sql -c my_connection -f scripts/logging/configure_event_target.sql
-snow sql -c my_connection -f scripts/bronze/proc_load_bronze.sql
-snow sql -c my_connection -f scripts/silver/proc_load_silver.sql
-snow sql -c my_connection -f scripts/logging/configure_logging.sql
+snow sql -c my_connection -f scripts/setup/rebuild.sql -D db="$DB"
+snow sql -c my_connection -f scripts/logging/ensure_event_table.sql -D db="$DB"
+snow sql -c my_connection -f scripts/logging/configure_event_target.sql -D db="$DB"
+snow sql -c my_connection -f scripts/bronze/proc_load_bronze.sql -D db="$DB"
+snow sql -c my_connection -f scripts/silver/proc_load_silver.sql -D db="$DB"
+snow sql -c my_connection -f scripts/logging/configure_logging.sql -D db="$DB"
 ```
 
-`rebuild.sql` はSnowflake CLIの `!source` で既存のBronze / SilverのDDLを読み込みます。参照パスはリポジトリルート基準です。CLI専用のコマンドを含むため、Snowsightでこのファイルを直接実行することはできません。[Snowflake CLIのファイル読み込み仕様](https://docs.snowflake.com/en/developer-guide/snowflake-cli/sql/execute-sql#execute-sql-in-local-files-or-urls)
+`rebuild.sql` はSnowflake CLIの `!source` で既存のBronze / SilverのDDLを読み込みます。参照パスはリポジトリルート基準です。`-D` で渡した変数は読み込んだファイルにも適用されます。CLI専用のコマンドを含むため、Snowsightでこのファイルを直接実行することはできません。[Snowflake CLIのファイル読み込み仕様](https://docs.snowflake.com/en/developer-guide/snowflake-cli/sql/execute-sql#execute-sql-in-local-files-or-urls)
 
 ### 7. CSVをステージへアップロードする
 
@@ -61,16 +73,16 @@ snow sql -c my_connection -f scripts/logging/configure_logging.sql
 ```bash
 # CRMの3ファイル
 snow stage copy 'datasets/source_crm/*.csv' \
-  '@DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_crm/' \
+  "@$DB.STAGING.STG_CSV_FILES/datasets/source_crm/" \
   -c my_connection --role SYSADMIN \
-  --database DATA_WAREHOUSE --schema STAGING \
+  --database "$DB" --schema STAGING \
   --overwrite --no-auto-compress --refresh
 
 # ERPの3ファイル
 snow stage copy 'datasets/source_erp/*.csv' \
-  '@DATA_WAREHOUSE.STAGING.STG_CSV_FILES/datasets/source_erp/' \
+  "@$DB.STAGING.STG_CSV_FILES/datasets/source_erp/" \
   -c my_connection --role SYSADMIN \
-  --database DATA_WAREHOUSE --schema STAGING \
+  --database "$DB" --schema STAGING \
   --overwrite --no-auto-compress --refresh
 ```
 
@@ -82,7 +94,7 @@ snow stage copy 'datasets/source_erp/*.csv' \
 
 ```bash
 snow sql -c my_connection --role SYSADMIN \
-  -q 'LIST @DATA_WAREHOUSE.STAGING.STG_CSV_FILES;'
+  -q "LIST @$DB.STAGING.STG_CSV_FILES;"
 ```
 
 次の6ファイルが配置されていることを確認します（一覧ではステージ名が先頭に付きます）。
@@ -104,7 +116,7 @@ datasets/source_erp/PX_CAT_G1V2.csv
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
-  -q 'CALL DATA_WAREHOUSE.BRONZE.LOAD_BRONZE();'
+  -q "CALL $DB.BRONZE.LOAD_BRONZE();"
 ```
 
 戻り値が `SUCCESS` であることを確認してから、手順10へ進みます。両ロードプロシージャは失敗時に `ERROR: ...` を返すため、CLIの終了コードだけでは成功を判断できません。
@@ -119,7 +131,7 @@ Bronzeの戻り値が `SUCCESS` であることを確認したら、クレンジ
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
-  -q 'CALL DATA_WAREHOUSE.SILVER.LOAD_SILVER();'
+  -q "CALL $DB.SILVER.LOAD_SILVER();"
 ```
 
 戻り値が `SUCCESS` であることを確認してから、手順11へ進みます。`ERROR: ...` の場合は後続の処理へ進まず、[ログを確認](#ログを確認する)してください。Silverも全件入れ替えのため、失敗時は一部だけ更新されている可能性があります。
@@ -130,7 +142,7 @@ Silverが `SUCCESS` になったら品質を確認します。
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
-  --database DATA_WAREHOUSE -f tests/quality_checks_silver.sql
+  -f tests/quality_checks_silver.sql -D db="$DB"
 ```
 
 結果はチェックごとに1行の表で表示されます。`status` が `FAIL` の行がないことを確認してから、Goldへ進みます。
@@ -153,7 +165,7 @@ Silverの品質確認が済んだら、分析用の3ビューを作成します�
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
-  -f scripts/gold/ddl_gold.sql
+  -f scripts/gold/ddl_gold.sql -D db="$DB"
 ```
 
 ### 13. Goldの品質を確認する
@@ -162,7 +174,7 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
-  -f tests/quality_checks_gold.sql
+  -f tests/quality_checks_gold.sql -D db="$DB"
 ```
 
 Goldの品質チェックもSilverと同じ形式で表示されます。すべての行の `status` が `PASS` であることを確認します。Goldはビューなので、別途ロード用のプロシージャを呼ぶ必要はありません。
@@ -171,7 +183,7 @@ Goldの品質チェックもSilverと同じ形式で表示されます。すべ�
 
 ```bash
 snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
-  -f scripts/logging/query_load_logs.sql
+  -f scripts/logging/query_load_logs.sql -D db="$DB"
 ```
 
 [query_load_logs.sql](../scripts/logging/query_load_logs.sql)はBronze / Silverの最新100件ずつとエラーログの最新50件を、それぞれ古い順に表示します。Event Tableへの反映には数分のラグがある場合があります。Event Tableは `SYSADMIN` で作成し、同じロールで参照します。
@@ -203,10 +215,26 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 プロシージャ更新の例（Bronzeを変更した場合）:
 
 ```bash
-snow sql -c my_connection -f scripts/bronze/proc_load_bronze.sql
-snow sql -c my_connection -f scripts/logging/configure_logging.sql
+snow sql -c my_connection -f scripts/bronze/proc_load_bronze.sql -D db="$DB"
+snow sql -c my_connection -f scripts/logging/configure_logging.sql -D db="$DB"
 ```
 
 両プロシージャが存在する構築済み環境で実行します。その後、Bronze → Silverのロード、Silver / Goldの品質確認、ログ確認を行います。全件入れ替えの変更では再ロードも確認してください。
 
 `logging/ensure_event_table.sql` はログ保存先がなければ作成し、既存ログを保持します。`logging/configure_logging.sql` も再実行時にログや業務データを削除しません。通常のCSV更新には、どちらも再実行不要です。
+
+## 検証DBで確認する
+
+ロード・変換などの変更は、既存DBに反映する前に検証DBで確認します。検証DBは変更ごとにリポジトリのSQLから構築し、確認後に削除します。既存DBのクローンは、プロシージャ・ビューが既存DBを参照したままになるため、検証DBとして使いません（[ADR-0008](adr/0008-pass-database-name-at-runtime.md)）。
+
+1. 未使用のDB名を決めます。例: `DB=DATA_WAREHOUSE_<目的>_<日付>`
+2. `SHOW DATABASES LIKE '<DB名>';` で既存のDBと重ならないことを確認します。
+3. [初回構築・再構築の順序](#初回構築再構築の順序)の手順1〜13を、同じ `DB` で実行します。ログは検証DBのEvent Tableへ出力され、アカウント全体の設定は変わりません。
+4. 変更内容に応じて、再ロード・ログ・既存DBとの件数比較などを確認します。品質チェックは参照のみのため、既存DBにも `-D db=DATA_WAREHOUSE` で実行して結果を比較できます。
+5. 検証DBを削除します。
+
+```bash
+snow sql -c my_connection --role SYSADMIN -q "DROP DATABASE $DB;"
+```
+
+削除前に `echo "$DB"` で、既存DBではないことを確認してください。

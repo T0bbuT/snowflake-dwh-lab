@@ -34,7 +34,7 @@ BronzeとSilverのロードプロシージャは、`SYSTEM$LOG_INFO`と`SYSTEM$L
 - Snowflake上で過去のロードログとエラーを検索できる。
 - ロードの戻り値と詳細ログの役割が分離される。
 - Event Tableへの反映には遅延が生じる場合がある。
-- Event Tableの出力先設定はアカウント全体に影響し、`ACCOUNTADMIN`が必要になる。
+- Event Tableの出力先設定には`ACCOUNTADMIN`が必要になる。当初はアカウント全体に設定していたが、[ADR-0008](0008-pass-database-name-at-runtime.md)によりDB単位の設定へ変更した。
 - 厳密なバッチ単位の監査、即時参照、ログ保持期間の管理が必要になれば、専用の監査テーブルが必要になる可能性がある。
 
 ## 見直し条件

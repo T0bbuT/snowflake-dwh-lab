@@ -3,13 +3,13 @@
 初回構築・再構築: DB・スキーマ・ステージ・Bronze / Silverテーブルを作成
 ================================================================================
 注意:
-    既存のDATA_WAREHOUSEを置き換えるため、データ・アップロード済みCSV・
+    対象DBを置き換えるため、データ・アップロード済みCSV・
     Event Tableのログ・プロシージャ・Goldビューも含めて作り直しになる。
     通常のデータ更新やプロシージャ更新では実行しない。
 
 実行方法:
-    リポジトリのルートからSnowflake CLIで実行する。
-    snow sql -c my_connection -f scripts/setup/rebuild.sql
+    リポジトリのルートからSnowflake CLIで実行し、対象DB名を -D db=... で渡す。
+    snow sql -c my_connection -f scripts/setup/rebuild.sql -D db=DATA_WAREHOUSE
     !sourceはCLIのコマンドであり、Snowsightではこのファイルを直接実行できない。
 
 実行後:
@@ -20,8 +20,8 @@
 USE ROLE SYSADMIN;
 USE WAREHOUSE COMPUTE_WH;
 
-CREATE OR REPLACE DATABASE DATA_WAREHOUSE;
-USE DATABASE DATA_WAREHOUSE;
+CREATE OR REPLACE DATABASE <% db %>;
+USE DATABASE <% db %>;
 
 CREATE OR REPLACE SCHEMA STAGING;
 CREATE OR REPLACE SCHEMA BRONZE;
@@ -30,7 +30,7 @@ CREATE OR REPLACE SCHEMA GOLD;
 
 -- CSV用の内部ステージ。ファイルフォーマットはステージ内に定義する。
 -- ダブルクォートで囲まれたカンマを含む値に対応し、ヘッダーを読み飛ばす。
-CREATE OR REPLACE STAGE DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+CREATE OR REPLACE STAGE <% db %>.STAGING.STG_CSV_FILES
     FILE_FORMAT = (
         TYPE = 'CSV'
         FIELD_OPTIONALLY_ENCLOSED_BY = '"'
