@@ -36,14 +36,14 @@
     - STG_CSV_FILESのディレクトリテーブルが有効であること
 
 使用例:
-    call data_warehouse.bronze.load_bronze();
+    call <% db %>.bronze.load_bronze();
 ================================================================================
 */
 
 use role sysadmin;
 use warehouse compute_wh;
 
-create or replace procedure data_warehouse.bronze.load_bronze()
+create or replace procedure <% db %>.bronze.load_bronze()
 returns string
 language sql
 as
@@ -62,7 +62,7 @@ begin
 
     -- 最初のTRUNCATEより前に、6ファイルすべてを完全一致で確認する。
     -- PUT / REMOVE後の古いメタデータで判断しないよう、ここで一覧を更新する。
-    ALTER STAGE DATA_WAREHOUSE.STAGING.STG_CSV_FILES REFRESH;
+    ALTER STAGE <% db %>.STAGING.STG_CSV_FILES REFRESH;
 
     SELECT LISTAGG(required.relative_path, ', ')
         WITHIN GROUP (ORDER BY required.relative_path)
@@ -75,7 +75,7 @@ begin
         ('datasets/source_erp/LOC_A101.csv'),
         ('datasets/source_erp/PX_CAT_G1V2.csv')
     ) AS required(relative_path)
-    LEFT JOIN DIRECTORY(@DATA_WAREHOUSE.STAGING.STG_CSV_FILES) AS staged
+    LEFT JOIN DIRECTORY(@<% db %>.STAGING.STG_CSV_FILES) AS staged
         ON staged.relative_path = required.relative_path
     WHERE staged.relative_path IS NULL;
 
@@ -98,10 +98,10 @@ begin
     -- CRM_CUST_INFO
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.CRM_CUST_INFO');
-    truncate table DATA_WAREHOUSE.BRONZE.CRM_CUST_INFO;
+    truncate table <% db %>.BRONZE.CRM_CUST_INFO;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.CRM_CUST_INFO');
-    copy into DATA_WAREHOUSE.BRONZE.CRM_CUST_INFO
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    copy into <% db %>.BRONZE.CRM_CUST_INFO
+    FROM @<% db %>.STAGING.STG_CSV_FILES
     FILES = ('datasets/source_crm/cust_info.csv')
     ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
@@ -111,10 +111,10 @@ begin
     -- CRM_PRD_INFO
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.CRM_PRD_INFO');
-    truncate table DATA_WAREHOUSE.BRONZE.CRM_PRD_INFO;
+    truncate table <% db %>.BRONZE.CRM_PRD_INFO;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.CRM_PRD_INFO');
-    copy into DATA_WAREHOUSE.BRONZE.CRM_PRD_INFO
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    copy into <% db %>.BRONZE.CRM_PRD_INFO
+    FROM @<% db %>.STAGING.STG_CSV_FILES
     FILES = ('datasets/source_crm/prd_info.csv')
     ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
@@ -124,10 +124,10 @@ begin
     -- CRM_SALES_DETAILS
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.CRM_SALES_DETAILS');
-    truncate table DATA_WAREHOUSE.BRONZE.CRM_SALES_DETAILS;
+    truncate table <% db %>.BRONZE.CRM_SALES_DETAILS;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.CRM_SALES_DETAILS');
-    copy into DATA_WAREHOUSE.BRONZE.CRM_SALES_DETAILS
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    copy into <% db %>.BRONZE.CRM_SALES_DETAILS
+    FROM @<% db %>.STAGING.STG_CSV_FILES
     FILES = ('datasets/source_crm/sales_details.csv')
     ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
@@ -140,10 +140,10 @@ begin
     -- ERP_CUST_AZ12
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.ERP_CUST_AZ12');
-    truncate table DATA_WAREHOUSE.BRONZE.ERP_CUST_AZ12;
+    truncate table <% db %>.BRONZE.ERP_CUST_AZ12;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.ERP_CUST_AZ12');
-    copy into DATA_WAREHOUSE.BRONZE.ERP_CUST_AZ12
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    copy into <% db %>.BRONZE.ERP_CUST_AZ12
+    FROM @<% db %>.STAGING.STG_CSV_FILES
     FILES = ('datasets/source_erp/CUST_AZ12.csv')
     ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
@@ -153,10 +153,10 @@ begin
     -- ERP_LOC_A101
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.ERP_LOC_A101');
-    TRUNCATE TABLE DATA_WAREHOUSE.BRONZE.ERP_LOC_A101;
+    TRUNCATE TABLE <% db %>.BRONZE.ERP_LOC_A101;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.ERP_LOC_A101');
-    COPY INTO DATA_WAREHOUSE.BRONZE.ERP_LOC_A101
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    COPY INTO <% db %>.BRONZE.ERP_LOC_A101
+    FROM @<% db %>.STAGING.STG_CSV_FILES
     FILES = ('datasets/source_erp/LOC_A101.csv')
     ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;
@@ -166,10 +166,10 @@ begin
     -- ERP_PX_CAT_G1V2
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_BRONZE: Truncating BRONZE.ERP_PX_CAT_G1V2');
-    TRUNCATE TABLE DATA_WAREHOUSE.BRONZE.ERP_PX_CAT_G1V2;
+    TRUNCATE TABLE <% db %>.BRONZE.ERP_PX_CAT_G1V2;
     SYSTEM$LOG_INFO('LOAD_BRONZE: Inserting into BRONZE.ERP_PX_CAT_G1V2');
-    COPY INTO DATA_WAREHOUSE.BRONZE.ERP_PX_CAT_G1V2
-    FROM @DATA_WAREHOUSE.STAGING.STG_CSV_FILES
+    COPY INTO <% db %>.BRONZE.ERP_PX_CAT_G1V2
+    FROM @<% db %>.STAGING.STG_CSV_FILES
     FILES = ('datasets/source_erp/PX_CAT_G1V2.csv')
     ON_ERROR = 'ABORT_STATEMENT';
     loaded_rows := SQLROWCOUNT;

@@ -20,7 +20,7 @@ FROM (
         RECORD['severity_text']::STRING AS severity,
         VALUE::STRING AS message
     FROM
-        data_warehouse.staging.load_events
+        <% db %>.staging.load_events
     WHERE
         RESOURCE_ATTRIBUTES['snow.executable.name'] LIKE '%LOAD_BRONZE%'
         AND RECORD_TYPE = 'LOG'
@@ -38,7 +38,7 @@ FROM (
         RECORD['severity_text']::STRING AS severity,
         VALUE::STRING AS message
     FROM
-        data_warehouse.staging.load_events
+        <% db %>.staging.load_events
     WHERE
         RESOURCE_ATTRIBUTES['snow.executable.name'] LIKE '%LOAD_SILVER%'
         AND RECORD_TYPE = 'LOG'
@@ -56,7 +56,7 @@ FROM (
         RESOURCE_ATTRIBUTES['snow.executable.name']::STRING AS procedure_name,
         VALUE::STRING AS message
     FROM
-        data_warehouse.staging.load_events
+        <% db %>.staging.load_events
     WHERE
         RECORD_TYPE = 'LOG'
         AND RECORD['severity_text']::STRING = 'ERROR'

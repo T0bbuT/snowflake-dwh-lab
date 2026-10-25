@@ -21,10 +21,10 @@
 
 ## Snowflakeでの実機検証
 
-- 原則として専用の検証DBを使用する。SQL内の完全修飾名も含め、参照先を検証DBに合わせる。
+- 原則として専用の検証DBを使用する。検証DBはリポジトリのSQLから `-D db=<検証DB名>` で構築し、SQLを手作業で書き換えない。手順は [docs/setup.md](docs/setup.md#検証dbで確認する) を参照する。既存DBのクローンはプロシージャ・ビューが既存DBを参照するため、検証DBにしない。
 - `scripts/setup/rebuild.sql` は既存DB・ステージ・Bronze / Silverテーブルを再作成し、アップロード済みファイルやログも失われる。Bronze / SilverのDDL単独実行もテーブルを再作成するため、既存環境で不用意に実行しない。
-- ロードプロシージャも各テーブルを `TRUNCATE` する。実行前に対象DBを確認する。
-- `scripts/logging/configure_event_target.sql` はアカウント全体のログ出力先を変更する。検証ではDB単位の設定を使うなど、既存環境への影響を避ける。
+- ロードプロシージャも各テーブルを `TRUNCATE` する。実行前に `-D db=...` と `CALL` の対象DBを確認する。
+- `scripts/logging/configure_event_target.sql` は対象DBのログ出力先を設定する。アカウント全体の設定（`ALTER ACCOUNT SET EVENT_TABLE`）は変更しない。
 - 検証用に実行方法を変更した場合は、その差分と未検証の範囲を報告する。
 - 終了後は今回作成した検証用オブジェクトを片付ける。保持する必要がある場合は、その理由と対象を報告する。
 

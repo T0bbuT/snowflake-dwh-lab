@@ -15,7 +15,7 @@ CSVはローカルから内部ステージへアップロードします。Snows
 - `--overwrite`：同名ファイルを上書きします。
 - `--no-auto-compress`：gzipへ自動圧縮せず、`.csv` のまま配置します。
 - `--refresh`：ステージのディレクトリテーブルを更新します。
-- `--database DATA_WAREHOUSE --schema STAGING`：同じ接続セッションのDB・スキーマを指定します。`--refresh` 時のカレントDB未設定エラーを避けるため、明示しています。別の `snow sql` コマンドで実行した `USE DATABASE` は引き継がれません。
+- `--database "$DB" --schema STAGING`：同じ接続セッションのDB・スキーマを指定します。`--refresh` 時のカレントDB未設定エラーを避けるため、明示しています。別の `snow sql` コマンドで実行した `USE DATABASE` は引き継がれません。`$DB` は[対象DBの指定](setup.md#対象dbを指定する)を参照してください。
 - `'*.csv'` を含むパスは引用符で囲み、CLIにワイルドカードを渡します。
 
 アップロード先の `datasets/source_crm/` と `datasets/source_erp/` は、既存の `proc_load_bronze.sql` が参照するパスに合わせています。

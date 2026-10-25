@@ -1,5 +1,5 @@
 -- dim_customers
-CREATE OR REPLACE VIEW data_warehouse.gold.dim_customers AS
+CREATE OR REPLACE VIEW <% db %>.gold.dim_customers AS
 SELECT
     MD5(ci.cst_id) AS customer_key, -- サロゲートキー
     ci.cst_id AS customer_id, -- ナチュラルキー
@@ -15,12 +15,12 @@ SELECT
     ca.bdate AS birthdate,
     ci.cst_create_date AS create_date,
 FROM
-    data_warehouse.silver.crm_cust_info AS ci
-    LEFT JOIN data_warehouse.silver.erp_cust_az12 AS ca ON ci.cst_key = ca.cid
-    LEFT JOIN data_warehouse.silver.erp_loc_a101 AS la ON ci.cst_key = la.cid;
+    <% db %>.silver.crm_cust_info AS ci
+    LEFT JOIN <% db %>.silver.erp_cust_az12 AS ca ON ci.cst_key = ca.cid
+    LEFT JOIN <% db %>.silver.erp_loc_a101 AS la ON ci.cst_key = la.cid;
 
 -- dim_products
-CREATE OR REPLACE VIEW data_warehouse.gold.dim_products AS
+CREATE OR REPLACE VIEW <% db %>.gold.dim_products AS
 SELECT
     MD5(pn.prd_id) AS product_key, -- サロゲートキー
     pn.prd_id AS product_id, -- ナチュラルキー
@@ -34,14 +34,14 @@ SELECT
     pn.prd_line AS product_line,
     pn.prd_start_dt AS start_date,
 FROM
-    data_warehouse.silver.crm_prd_info AS pn
-    LEFT JOIN data_warehouse.silver.erp_px_cat_g1v2 AS pc ON pn.cat_id = pc.id
+    <% db %>.silver.crm_prd_info AS pn
+    LEFT JOIN <% db %>.silver.erp_px_cat_g1v2 AS pc ON pn.cat_id = pc.id
 WHERE
     pn.prd_end_dt IS NULL -- end_dtが入力されていないもののみを対象とする(入力されているものは、既に終了したもの)
 ;
 
 -- fact_sales
-CREATE OR REPLACE VIEW data_warehouse.gold.fact_sales AS
+CREATE OR REPLACE VIEW <% db %>.gold.fact_sales AS
 SELECT
     sd.sls_ord_num  AS order_number,
     pr.product_key,
@@ -53,9 +53,9 @@ SELECT
     sd.sls_quantity AS quantity,
     sd.sls_price    AS price,
 FROM
-    data_warehouse.silver.crm_sales_details AS sd
-    LEFT JOIN data_warehouse.gold.dim_products AS pr ON sd.sls_prd_key = pr.product_number
-    LEFT JOIN data_warehouse.gold.dim_customers AS cu ON sd.sls_cust_id = cu.customer_id
+    <% db %>.silver.crm_sales_details AS sd
+    LEFT JOIN <% db %>.gold.dim_products AS pr ON sd.sls_prd_key = pr.product_number
+    LEFT JOIN <% db %>.gold.dim_customers AS cu ON sd.sls_cust_id = cu.customer_id
 WHERE
     -- 数量・単価が補えず売上がNULLの行は、分析に使えないためGoldから除外する(Silverには保持)
     -- 売上は数量×単価なので、この条件で数量・単価のNULLもまとめて除外される

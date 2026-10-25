@@ -24,7 +24,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ') AS examples
     FROM (
         SELECT COALESCE(customer_key, 'NULL') AS example
-        FROM data_warehouse.gold.dim_customers
+        FROM <% db %>.gold.dim_customers
         GROUP BY customer_key
         HAVING COUNT(*) > 1
     )
@@ -35,7 +35,7 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT COALESCE(product_key, 'NULL') AS example
-        FROM data_warehouse.gold.dim_products
+        FROM <% db %>.gold.dim_products
         GROUP BY product_key
         HAVING COUNT(*) > 1
     )
@@ -46,10 +46,10 @@ WITH results AS (
         ARRAY_TO_STRING(ARRAY_SLICE(ARRAY_SORT(ARRAY_AGG(DISTINCT example)), 0, 5), ', ')
     FROM (
         SELECT f.order_number AS example
-        FROM data_warehouse.gold.fact_sales AS f
-        LEFT JOIN data_warehouse.gold.dim_customers AS c
+        FROM <% db %>.gold.fact_sales AS f
+        LEFT JOIN <% db %>.gold.dim_customers AS c
             ON c.customer_key = f.customer_key
-        LEFT JOIN data_warehouse.gold.dim_products AS p
+        LEFT JOIN <% db %>.gold.dim_products AS p
             ON p.product_key = f.product_key
         WHERE p.product_key IS NULL OR c.customer_key IS NULL
     )

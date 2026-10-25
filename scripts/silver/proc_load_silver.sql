@@ -36,14 +36,14 @@
     - scripts/logging/configure_logging.sql をロード呼び出し前に実行しておくこと
 
 使用例:
-    call data_warehouse.silver.load_silver();
+    call <% db %>.silver.load_silver();
 ================================================================================
 */
 
 use role sysadmin;
 use warehouse compute_wh;
 
-create or replace procedure data_warehouse.silver.load_silver()
+create or replace procedure <% db %>.silver.load_silver()
 returns string
 language sql
 as
@@ -67,10 +67,10 @@ begin
     -- 想定外のコード・空欄・NULLは 'n/a' とする。
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.CRM_CUST_INFO');
-    TRUNCATE TABLE data_warehouse.silver.crm_cust_info;
+    TRUNCATE TABLE <% db %>.silver.crm_cust_info;
     SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.CRM_CUST_INFO');
     INSERT INTO
-        data_warehouse.silver.crm_cust_info (
+        <% db %>.silver.crm_cust_info (
             cst_id,
             cst_key,
             cst_firstname,
@@ -96,7 +96,7 @@ begin
         END AS cst_gndr,
         cst_create_date
     FROM
-        data_warehouse.bronze.crm_cust_info
+        <% db %>.bronze.crm_cust_info
     WHERE
         cst_id IS NOT NULL
     QUALIFY
@@ -120,10 +120,10 @@ begin
     -- 最新バージョンは終了日がNULLになり、Goldの dim_products はこれを現行の商品として扱う。
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.CRM_PRD_INFO');
-    TRUNCATE TABLE data_warehouse.silver.crm_prd_info;
+    TRUNCATE TABLE <% db %>.silver.crm_prd_info;
     SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.CRM_PRD_INFO');
     INSERT INTO
-        data_warehouse.silver.crm_prd_info (
+        <% db %>.silver.crm_prd_info (
             prd_id,
             cat_id,
             prd_key,
@@ -156,7 +156,7 @@ begin
             )
         ) AS prd_end_dt
     FROM
-        data_warehouse.bronze.crm_prd_info;
+        <% db %>.bronze.crm_prd_info;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: CRM_PRD_INFO loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -170,10 +170,10 @@ begin
     -- 方針の詳細は docs/adr/0006-recompute-sales-from-quantity-and-price.md を参照。
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.CRM_SALES_DETAILS');
-    TRUNCATE TABLE data_warehouse.silver.crm_sales_details;
+    TRUNCATE TABLE <% db %>.silver.crm_sales_details;
     SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.CRM_SALES_DETAILS');
     INSERT INTO
-        data_warehouse.silver.crm_sales_details (
+        <% db %>.silver.crm_sales_details (
             sls_ord_num,
             sls_prd_key,
             sls_cust_id,
@@ -207,7 +207,7 @@ begin
         IFF(sls_quantity > 0, sls_quantity, NULL) AS sls_quantity,
         ABS(NULLIF(sls_price, 0)) AS sls_price
     FROM
-        data_warehouse.bronze.crm_sales_details;
+        <% db %>.bronze.crm_sales_details;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: CRM_SALES_DETAILS loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -222,10 +222,10 @@ begin
     -- 性別はM/MALE、F/FEMALEを表記へ統一し、それ以外・空欄・NULLは 'n/a' とする。
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.ERP_CUST_AZ12');
-    TRUNCATE TABLE data_warehouse.silver.erp_cust_az12;
+    TRUNCATE TABLE <% db %>.silver.erp_cust_az12;
     SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.ERP_CUST_AZ12');
     INSERT INTO
-        data_warehouse.silver.erp_cust_az12 (cid, bdate, gen)
+        <% db %>.silver.erp_cust_az12 (cid, bdate, gen)
     SELECT
         IFF(cid LIKE 'NASAW%', SUBSTR(cid, 4, LEN(cid)), cid) AS cid,
         IFF(bdate > CURRENT_DATE(), NULL, bdate) AS bdate,
@@ -235,7 +235,7 @@ begin
             ELSE 'n/a'
         END AS gen
     FROM
-        data_warehouse.bronze.erp_cust_az12;
+        <% db %>.bronze.erp_cust_az12;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: ERP_CUST_AZ12 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -245,10 +245,10 @@ begin
     -- 国はコード(DE、US、USA)を国名へ統一し、空欄・NULLは 'n/a' とする。それ以外は前後の空白だけ除去する。
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.ERP_LOC_A101');
-    TRUNCATE TABLE data_warehouse.silver.erp_loc_a101;
+    TRUNCATE TABLE <% db %>.silver.erp_loc_a101;
     SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.ERP_LOC_A101');
     INSERT INTO
-        data_warehouse.silver.erp_loc_a101 (cid, cntry)
+        <% db %>.silver.erp_loc_a101 (cid, cntry)
     SELECT
         REPLACE(cid, '-', '') AS cid,
         CASE
@@ -259,7 +259,7 @@ begin
             ELSE TRIM(cntry)
         END AS cntry
     FROM
-        data_warehouse.bronze.erp_loc_a101;
+        <% db %>.bronze.erp_loc_a101;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: ERP_LOC_A101 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');
@@ -268,17 +268,17 @@ begin
     -- 空白や表記揺れが見つかっていないため、変換せずにコピーする。IDは crm_prd_info.cat_id と同じ形式(例: AC_BR)。
     start_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: Truncating SILVER.ERP_PX_CAT_G1V2');
-    TRUNCATE TABLE data_warehouse.silver.erp_px_cat_g1v2;
+    TRUNCATE TABLE <% db %>.silver.erp_px_cat_g1v2;
     SYSTEM$LOG_INFO('LOAD_SILVER: Inserting into SILVER.ERP_PX_CAT_G1V2');
     INSERT INTO
-        data_warehouse.silver.erp_px_cat_g1v2 (id, cat, subcat, maintenance)
+        <% db %>.silver.erp_px_cat_g1v2 (id, cat, subcat, maintenance)
     SELECT
         id,
         cat,
         subcat,
         maintenance
     FROM
-        data_warehouse.bronze.erp_px_cat_g1v2;
+        <% db %>.bronze.erp_px_cat_g1v2;
     loaded_rows := SQLROWCOUNT;
     end_time := current_timestamp();
     SYSTEM$LOG_INFO('LOAD_SILVER: ERP_PX_CAT_G1V2 loaded ' || :loaded_rows || ' rows in ' || round(datediff(millisecond, start_time, end_time) / 1000.0, 3) || 's');

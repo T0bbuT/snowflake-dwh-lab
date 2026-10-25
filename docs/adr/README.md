@@ -25,6 +25,7 @@
 | [0005: 必須CSVをロード開始前に検証する](0005-validate-required-files-before-loading.md) | 採用 | 固有 | ファイル不足時は既存Bronzeデータを変更せず終了する |
 | [0006: 売上を数量と単価から再計算する](0006-recompute-sales-from-quantity-and-price.md) | 採用 | 固有 | ソースの売上は使わず、正規化した数量×単価で売上を求める |
 | [0007: 品質チェックを合否付きの一覧で出力する](0007-report-quality-checks-as-status-table.md) | 採用 | 固有 | チェックごとに重要度・件数・合否・例を1行で返し、`FAIL` の有無で判断する |
+| [0008: 対象DB名を実行時に渡し、検証DBをリポジトリのSQLから構築する](0008-pass-database-name-at-runtime.md) | 採用 | 固有 | DB名をCLIのテンプレート変数にし、既存DBと検証DBで同じSQLを使う。ログ出力先はDB単位で設定する |
 
 ## 運用ルール
 
