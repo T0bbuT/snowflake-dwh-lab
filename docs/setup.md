@@ -179,6 +179,25 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 
 Goldの品質チェックもSilverと同じ形式で表示されます。すべての行の `status` が `PASS` であることを確認します。Goldはビューなので、別途ロード用のプロシージャを呼ぶ必要はありません。
 
+## 品質チェックをまとめて実行する
+
+手順11と13の品質チェックは、[tests/run_quality_checks.py](../tests/run_quality_checks.py)で1コマンドにまとめて実行できます。参照のみで、DBの再作成やロードは行いません。標準ライブラリだけを使うため、`snow` が動くPythonがあれば追加のインストールは不要です。
+
+```bash
+python3 tests/run_quality_checks.py -c my_connection \
+  --role SYSADMIN --warehouse COMPUTE_WH --db "$DB"
+```
+
+`--role` と `--warehouse` は省略すると接続の既定値を使います。`--layer silver` または `--layer gold` で片方だけ実行できます。各チェックの結果の一覧に続けて、FAIL・WARNの件数と例（`examples`）を表示します。
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | FAILなし。WARNがある場合は「WARNあり」と表示するので、手順11の表に沿って仕様どおりか確認する |
+| `1` | FAILが1件以上ある |
+| `2` | SQLの実行失敗（DBやビューがないなど）、`snow` が見つからない、結果を解釈できない、引数の誤り（`--db` が空など） |
+
+現在のデータでは、S12（売上・数量・単価のNULL）の `WARN` が出るのが仕様どおりです（[ADR-0006](adr/0006-recompute-sales-from-quantity-and-price.md)）。
+
 ## ログを確認する
 
 ```bash
@@ -195,7 +214,7 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 1. このページの[手順7](#7-csvをステージへアップロードする)でCSVを上書きアップロードし、[手順8](#8-アップロード結果を確認する)で6ファイルを確認する。
 2. `LOAD_BRONZE()` を呼び、`SUCCESS` を確認する。
 3. `LOAD_SILVER()` を呼び、`SUCCESS` を確認する。
-4. Silver / Goldの品質チェックを実行し、必要に応じてログを確認する。
+4. Silver / Goldの品質チェックを実行し（[まとめて実行](#品質チェックをまとめて実行する)できます）、必要に応じてログを確認する。
 
 コマンドは上の手順7〜13を参照してください。Goldのビュー定義を変更していなければ、手順12のDDL実行は不要です。
 
