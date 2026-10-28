@@ -1,2 +1,2 @@
 @AGENTS.md
-@TODO.md
+@STATUS.md
