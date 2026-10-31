@@ -1,0 +1,129 @@
+# データアーキテクチャ図（READMEに掲載）
+# 生成: d2 docs/diagrams/data_architecture.d2 docs/diagrams/data_architecture.svg
+
+vars: {
+  d2-config: {
+    layout-engine: elk
+    theme-id: 0
+  }
+}
+
+# 全体を「Sources・矢印・Data Warehouse・矢印・Consume」の5列で横に並べる
+grid-columns: 5
+horizontal-gap: 0
+
+classes: {
+  frame: {style: {stroke-dash: 3; fill: "#FFFFFF"; stroke: "#555555"; font-size: 24; bold: true}}
+  body: {style: {fill: transparent; stroke-width: 0; font-size: 16}}
+  icon: {shape: image; width: 64; height: 64}
+  # 矢印はD2の接続線（a -> b）ではなく、ブロック矢印の画像を列に並べて描く。
+  # 接続線だと太いブロック矢印にできず、枠の高さの違いで斜めになるため。
+  arrow: {shape: image; icon: ./icons/arrow.svg; width: 80; height: 48; label: ""}
+}
+
+sources: Sources {
+  class: frame
+  grid-columns: 1
+  grid-gap: 16
+  crm: CRM {class: icon; icon: ./icons/folder.svg}
+  erp: ERP {class: icon; icon: ./icons/folder.svg}
+  info: |md
+    **Object Type:** CSV Files
+
+    **Interface:** Files in Folders
+  | {class: body}
+}
+
+# 外側の矢印は、Data Warehouseのタイトルの分だけ下がる内側の矢印と高さを揃えるため、
+# 29px下にずらして描いた画像を使う。タイトルの文字サイズを変えたらこの画像も直す。
+a0: {class: arrow; icon: ./icons/arrow-outer.svg}
+
+dwh: Data Warehouse {
+  class: frame
+  icon: ./icons/snowflake.svg
+  label.near: top-center
+  icon.near: top-left
+  grid-columns: 5
+  grid-gap: 16
+
+  # 各レイヤの幅は中身に合わせて固定する。説明文が収まらなくなったら広げる。
+  bronze: Bronze Layer {
+    width: 240
+    grid-columns: 1
+    grid-gap: 16
+    style: {fill: "#FCEBDD"; stroke: "#E0A060"; font-size: 18; bold: true}
+    db: Raw Data {class: icon; icon: ./icons/db-bronze.svg}
+    info: |md
+      **Object Type:** Tables
+
+      **Load:**
+      - Batch Processing
+      - Full Load
+      - Trunc & Insert
+
+      No **Transformation**
+
+      **Data Model:** None (As-is)
+    | {class: body}
+  }
+
+  a1: {class: arrow}
+
+  silver: Silver Layer {
+    width: 240
+    grid-columns: 1
+    grid-gap: 16
+    style: {fill: "#F2F2F2"; stroke: "#888888"; font-size: 18; bold: true}
+    db: Cleaned, Standardized Data {class: icon; icon: ./icons/db-silver.svg}
+    info: |md
+      **Object Type:** Tables
+
+      **Load:**
+      - Batch Processing
+      - Full Load
+      - Trunc & Insert
+
+      **Transformations:**
+      - Data Cleansing
+      - Data Standardization
+      - Derived Columns
+      - Data Enrichment
+
+      **Data Model:** None (As-is)
+    | {class: body}
+  }
+
+  a2: {class: arrow}
+
+  gold: Gold Layer {
+    width: 240
+    grid-columns: 1
+    grid-gap: 16
+    style: {fill: "#FFF5D6"; stroke: "#E0C060"; font-size: 18; bold: true}
+    db: Business-Ready Data {class: icon; icon: ./icons/db-gold.svg}
+    info: |md
+      **Object Type:** Views
+
+      No **Load**
+
+      **Transformations:**
+      - Data Integration
+      - Aggregations
+      - Business Logic
+
+      **Data Model:**
+      - Star Schema
+    | {class: body}
+  }
+}
+
+a3: {class: arrow; icon: ./icons/arrow-outer.svg}
+
+consume: Consume {
+  class: frame
+  grid-columns: 1
+  grid-gap: 48
+  bi: BI & Reporting {class: icon; icon: ./icons/bi.svg}
+  sql: Ad-Hoc SQL Queries {class: icon; icon: ./icons/sql.svg}
+  ml: Machine Learning {class: icon; icon: ./icons/ml.svg}
+}

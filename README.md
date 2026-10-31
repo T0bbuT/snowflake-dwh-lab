@@ -17,7 +17,7 @@ ERP・CRM由来の販売データをSnowflakeへ取り込み、クレンジン�
 
 データ基盤は、Bronze / Silver / Goldの3層で構成するメダリオンアーキテクチャを採用しています。
 
-![データアーキテクチャ](docs/data_architecture.drawio.svg)
+![データアーキテクチャ](docs/diagrams/data_architecture.svg)
 
 - **Bronze**: ERP・CRM由来のCSVを、項目構造を保って取り込むレイヤ
 - **Silver**: データのクレンジング・標準化・統合を行うレイヤ
