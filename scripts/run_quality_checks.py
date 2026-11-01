@@ -56,17 +56,13 @@ def run_check(sql_file, db, connection):
     return rows
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Silver・Goldの品質チェックをまとめて実行する")
-    parser.add_argument("--db", required=True, help="対象DB名(例: DATA_WAREHOUSE)")
-    parser.add_argument("-c", "--connection", default="my_connection", help="snow の接続名")
-    args = parser.parse_args()
-
+def run_quality_checks(db, connection):
+    """全チェックを実行して結果を表示し、終了コード(0/1/2)を返す。"""
     results = []
     has_error = False
     for layer, sql_file in CHECKS:
-        print(f"実行中: {layer} ({sql_file}) on {args.db}", file=sys.stderr)
-        rows = run_check(sql_file, args.db, args.connection)
+        print(f"実行中: {layer} ({sql_file}) on {db}", file=sys.stderr)
+        rows = run_check(sql_file, db, connection)
         if rows is None:
             print(f"エラー: {layer} のチェックを実行できませんでした", file=sys.stderr)
             has_error = True
@@ -96,6 +92,14 @@ def main():
         return 1
     print("結果: FAILなし")
     return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Silver・Goldの品質チェックをまとめて実行する")
+    parser.add_argument("--db", required=True, help="対象DB名(例: DATA_WAREHOUSE)")
+    parser.add_argument("-c", "--connection", default="my_connection", help="snow の接続名")
+    args = parser.parse_args()
+    return run_quality_checks(args.db, args.connection)
 
 
 if __name__ == "__main__":

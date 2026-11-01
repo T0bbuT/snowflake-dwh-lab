@@ -65,7 +65,8 @@ snowflake-dwh-lab/
 │   ├── bronze/           # Bronzeのテーブル定義・ロード処理
 │   ├── silver/           # Silverのテーブル定義・変換処理
 │   ├── gold/             # Goldの分析用ビュー定義
-│   └── run_quality_checks.py  # Silver / Goldの品質チェックの一括実行
+│   ├── run_quality_checks.py  # Silver / Goldの品質チェックの一括実行
+│   └── verify_in_test_db.py   # 検証DBでの構築・ロード・Goldの比較の一括実行
 └── tests/                # Silver / Goldのデータ品質チェック
 ```
 
