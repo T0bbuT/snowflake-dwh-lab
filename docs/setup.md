@@ -217,7 +217,7 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 
 ## 定義を変更したときの再実行範囲
 
-通常の設定・定義更新では `setup/rebuild.sql` を実行しません。
+`main` に取り込んだSQLの変更は、この表に従って既存DB `DATA_WAREHOUSE` にも反映し、`main` のSQLで構築した状態に保ちます（[検証DBでの比較](#1コマンドで確認する)の比較元になるため）。通常の設定・定義更新では `setup/rebuild.sql` を実行しません。
 
 | 変更・状況 | 実行するもの |
 | --- | --- |
