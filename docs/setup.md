@@ -47,7 +47,7 @@ SnowsightでGit上のSQLを編集・実行したい場合は、[Git Workspaceガ
 | 10 | [Silverへロードする](#10-silverへロードする) | Bronze → Silver。戻り値が `SUCCESS` であることを確認 |
 | 11 | [Silverの品質を確認する](#11-silverの品質を確認する) | Silverの品質チェックを実行 |
 | 12 | [Goldを作成する](#12-goldを作成する) | 顧客・商品・売上の3ビューを作成 |
-| 13 | [Goldの品質を確認する](#13-goldの品質を確認する) | Goldのキー重複・参照整合性を確認 |
+| 13 | [Goldの品質を確認する](#13-goldの品質を確認する) | Goldのキー重複・参照整合性を確認。手順11とまとめて[1コマンドで実行](#silverとgoldの品質チェックをまとめて実行する)もできる |
 
 手順6は両プロシージャへの `ALTER PROCEDURE` を含むため、必ず手順4〜5の後に実行します。ログ保存先・出力先・ログレベルは、ロードを呼び出す前に設定します。手順3はDB単位の設定で、アカウント全体の出力先は変更しません。
 
@@ -179,6 +179,22 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 
 Goldの品質チェックもSilverと同じ形式で表示されます。すべての行の `status` が `PASS` であることを確認します。Goldはビューなので、別途ロード用のプロシージャを呼ぶ必要はありません。
 
+#### SilverとGoldの品質チェックをまとめて実行する
+
+Goldの作成後は、手順11と13のチェックを1コマンドで実行できます。実行にはPython 3が必要です（追加のパッケージは不要）。
+
+```bash
+python3 scripts/run_quality_checks.py --db "$DB" -c my_connection
+```
+
+Silver・Goldの結果を1つの表にまとめ、`FAIL` / `WARN` の行には `examples` を添えて表示します。片方に `FAIL` があっても両方を最後まで実行し、終了コードで結果を返します。
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | `FAIL` なし（`WARN` のみの場合を含む） |
+| `1` | `FAIL` が1件以上 |
+| `2` | `snow` の実行に失敗（接続エラー、対象DB・テーブルが存在しないなど） |
+
 ## ログを確認する
 
 ```bash
@@ -195,7 +211,7 @@ snow sql -c my_connection --role SYSADMIN --warehouse COMPUTE_WH \
 1. このページの[手順7](#7-csvをステージへアップロードする)でCSVを上書きアップロードし、[手順8](#8-アップロード結果を確認する)で6ファイルを確認する。
 2. `LOAD_BRONZE()` を呼び、`SUCCESS` を確認する。
 3. `LOAD_SILVER()` を呼び、`SUCCESS` を確認する。
-4. Silver / Goldの品質チェックを実行し、必要に応じてログを確認する。
+4. Silver / Goldの品質チェックを実行し（[まとめて実行](#silverとgoldの品質チェックをまとめて実行する)もできる）、必要に応じてログを確認する。
 
 コマンドは上の手順7〜13を参照してください。Goldのビュー定義を変更していなければ、手順12のDDL実行は不要です。
 

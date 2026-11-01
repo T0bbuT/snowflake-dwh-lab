@@ -5,3 +5,6 @@
 
 # Snowflake認証用の秘密鍵
 rsa_key.p8
+
+# Pythonのキャッシュ
+__pycache__/
