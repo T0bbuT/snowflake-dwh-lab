@@ -271,10 +271,8 @@ python3 scripts/verify_in_test_db.py -c my_connection
 2. `SHOW DATABASES LIKE '<DB名>';` で既存のDBと重ならないことを確認します。
 3. [初回構築・再構築の順序](#初回構築再構築の順序)の手順1〜13を、同じ `DB` で実行します。ログは検証DBのEvent Tableへ出力され、アカウント全体の設定は変わりません。
 4. 変更内容に応じて、再ロード・ログ・既存DBとの件数比較などを確認します。品質チェックは参照のみのため、既存DBにも `-D db=DATA_WAREHOUSE` で実行して結果を比較できます。
-5. 検証DBを削除します。
+5. 検証DBを削除します。実行前に `echo "$DB"` で、既存DBではないことを確認してください。
 
 ```bash
 snow sql -c my_connection --role SYSADMIN -q "DROP DATABASE $DB;"
 ```
-
-削除前に `echo "$DB"` で、既存DBではないことを確認してください。
