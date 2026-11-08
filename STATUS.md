@@ -17,7 +17,7 @@
 ## 次にやること
 
 1. **`scripts/run_quality_checks.py` と `scripts/verify_in_test_db.py` を手動で実行して理解する**
-   - `verify_in_test_db.py` は一度実行して動きを見た。次はコードを読みながら理解を深める。
+   - どちらも一度実行して動きを見た。次はコードを読みながら理解を深める。
 2. **構想：BronzeをVARIANT、Silverを動的テーブルにする案を試す**（旧Issue #12）
    - 検証DBで小さく試して、今の方式と比べてから進めるか決める。
 3. **構想：dbtへ移行する**（旧Issue #18）
