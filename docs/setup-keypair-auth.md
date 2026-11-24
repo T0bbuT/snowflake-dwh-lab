@@ -49,6 +49,8 @@ cat ~/.snowflake/rsa_key.pub
 ALTER USER <YOUR_USERNAME> SET RSA_PUBLIC_KEY='<公開鍵の文字列>';
 ```
 
+ユーザー名は `SELECT CURRENT_USER();` で確認できます。Googleアカウントで作成したユーザーなど、小文字や `.` を含む場合は `"first.last"` のように二重引用符で囲みます。
+
 
 ## 5. 登録の確認（Snowflake で実行）
 
@@ -56,7 +58,7 @@ ALTER USER <YOUR_USERNAME> SET RSA_PUBLIC_KEY='<公開鍵の文字列>';
 DESC USER <YOUR_USERNAME>;
 ```
 
-`RSA_PUBLIC_KEY_FP` に値が入っていれば登録成功です。
+`RSA_PUBLIC_KEY_FP` に値が入っていれば登録成功です。次の手順で使うため、`LOGIN_NAME` の値も控えておきます。
 
 ---
 
@@ -67,12 +69,14 @@ DESC USER <YOUR_USERNAME>;
 ```toml
 [my_connection]
 account = "<YOUR_ACCOUNT>"
-user = "<YOUR_USERNAME>"
+user = "<YOUR_LOGIN_NAME>"
 authenticator = "SNOWFLAKE_JWT"
 private_key_file = "~/.snowflake/rsa_key.p8"
 warehouse = "<YOUR_WAREHOUSE>"
 role = "<YOUR_ROLE>"
 ```
+
+`user` には、手順5の `DESC USER` で確認した `LOGIN_NAME` を指定します。Googleアカウントで作成したユーザーでは `LOGIN_NAME` がメールアドレスになり、`NAME` と異なります。`NAME` を指定すると、鍵が正しく登録されていても `JWT token is invalid` で接続に失敗します。
 
 ## 7. 接続テスト
 
